@@ -1,15 +1,2 @@
-# Executáveis e objetos compilados
 *.exe
-*.o
-*.obj
-*.dll
-
-# Saídas de compilação
 output/
-
-# Configurações locais do VS Code
-.vscode/
-
-# Logs e temporários
-*.log
-*.tmp

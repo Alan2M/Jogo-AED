@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compilar e rodar com Raylib",
+            "type": "shell",
+            "command": "C:/w64devkit/bin/gcc.exe",
+            "args": [
+                "src/main.c",
+                "src/player/player.c",
+                "src/mapa/mapa.c",
+                "-o", "jogo.exe",
+                "-I", "src",
+                "-I", "C:/raylib/include",
+                "-L", "C:/raylib/lib",
+                "-lraylib",
+                "-lopengl32",
+                "-lgdi32",
+                "-lwinmm",
+                "&&",
+                "jogo.exe"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Compila e executa o jogo Raylib automaticamente"
+        }
+    ]
+}
