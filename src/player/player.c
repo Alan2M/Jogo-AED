@@ -15,9 +15,6 @@ void UpdatePlayer(Player *p, Rectangle ground) {
     p->velocity.y += 0.5f;
     p->rect.y += p->velocity.y;
 
-    if (IsKeyDown(KEY_R)){
-            InitPlayer(p);
-    }
     
     // Colisão com o chão
     if (CheckCollisionRecs(p->rect, ground)) {
@@ -25,11 +22,23 @@ void UpdatePlayer(Player *p, Rectangle ground) {
         p->velocity.y = 0;
         p->isJumping = false;
     }
-
+    
     // Pulo
     if ((IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) && !p->isJumping) {
         p->velocity.y = -10;
         p->isJumping = true;
+    }
+    
+    if (p->rect.x < 0){
+        p->rect.x = 0;
+    }
+
+    if (p->rect.x + p->rect.width > ground.width){
+        p->rect.x = ground.width - p->rect.width;
+    }
+
+    if (IsKeyDown(KEY_R)){
+            InitPlayer(p);
     }
 }
 

@@ -35,7 +35,7 @@ int main(void)
         DrawPlayer(player);
         EndMode2D();
 
-        DrawText("Mapa separado do main", 10, 10, 20, DARKBLUE);
+        DrawText("Mario", 10, 10, 20, DARKBLUE);
         EndDrawing();
     }
 
