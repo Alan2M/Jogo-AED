@@ -6,6 +6,7 @@
             "type": "shell",
             "command": "C:/w64devkit/bin/gcc.exe",
             "args": [
+                "src/menu/menu.c",
                 "src/main.c",
                 "src/player/player.c",
                 "src/mapa/mapa.c",
