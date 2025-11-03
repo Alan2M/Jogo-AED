@@ -1,7 +1,7 @@
 #include "fases.h"
 #include "raylib.h"
 
-void Fase1(Player* player) {
+void Fase3(Player* player) {
     Rectangle ground = { 0, 800, 1920, 280 };
     InitPlayer(player);
 
@@ -9,15 +9,15 @@ void Fase1(Player* player) {
         UpdatePlayer(player, ground);
 
         BeginDrawing();
-        ClearBackground((Color){180, 80, 50, 255});
-        DrawText("FASE 1 - TEMPLO INICIAL", 650, 100, 40, GOLD);
+        ClearBackground((Color){200, 50, 50, 255}); // fundo avermelhado
+        DrawText("FASE 3 - MONTANHA DE FOGO", 620, 100, 40, YELLOW);
         DrawText("Pressione ESC para voltar", 700, 200, 20, WHITE);
 
-        DrawRectangleRec(ground, BROWN);
+        DrawRectangleRec(ground, RED);
         DrawPlayer(*player);
 
         EndDrawing();
 
-        if (IsKeyPressed(KEY_ESCAPE)) break; // sai da fase
+        if (IsKeyPressed(KEY_ESCAPE)) break;
     }
 }

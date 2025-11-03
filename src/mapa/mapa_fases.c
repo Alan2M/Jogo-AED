@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
-#include "fases/fases.h" // inclui as funções das fases
+#include "fases/fases.h"
+#include "../player/player.h"
 
 // Estrutura da árvore binária
 typedef struct NoFase {
@@ -29,7 +30,6 @@ void Conectar(NoFase* pai, NoFase* esq, NoFase* dir) {
 }
 
 void AtualizarDesbloqueios(NoFase* raiz, int faseConcluida) {
-    // Lógica de desbloqueio em árvore binária
     if (faseConcluida == 1) {
         if (raiz->esquerda) raiz->esquerda->desbloqueada = true;
         if (raiz->direita) raiz->direita->desbloqueada = true;
@@ -40,13 +40,13 @@ void AtualizarDesbloqueios(NoFase* raiz, int faseConcluida) {
         if (raiz->direita->direita) raiz->direita->direita->desbloqueada = true;
 }
 
-// --- Desenhar um nó da fase ---
+// --- Desenhar fase ---
 void DesenharFase(NoFase* fase, Vector2 pos, int selecionada, float brilho) {
     Color corBase;
 
     if (!fase->desbloqueada) corBase = DARKGRAY;
     else if (fase->id == selecionada)
-        corBase = (Color){ (int)(255 * brilho), (int)(255 * brilho), 0, 255 }; // brilho amarelo pulsante
+        corBase = (Color){ (int)(255 * brilho), (int)(255 * brilho), 0, 255 };
     else
         corBase = GREEN;
 
@@ -58,15 +58,12 @@ void DesenharFase(NoFase* fase, Vector2 pos, int selecionada, float brilho) {
     DrawText(texto, pos.x - 10, pos.y - 15, 40, BLACK);
 }
 
-// --- Função principal de exibição do mapa de fases ---
-void MostrarMapaFases(void) {
+// --- Mapa de fases ---
+bool MostrarMapaFases(void) {
     const int screenWidth = 1920;
     const int screenHeight = 1080;
 
-    InitWindow(screenWidth, screenHeight, "Mapa de Fases - Elements");
-    SetTargetFPS(60);
-
-    // --- Criação da árvore ---
+    // Cria árvore binária
     NoFase* f1 = CriarFase(1, true);
     NoFase* f2 = CriarFase(2, false);
     NoFase* f3 = CriarFase(3, false);
@@ -80,8 +77,17 @@ void MostrarMapaFases(void) {
     int faseSelecionada = 1;
     int faseConcluida = 0;
 
+    // 🟡 EVITA que o ENTER do menu entre direto na Fase 1
+    while (IsKeyDown(KEY_ENTER)) {
+        BeginDrawing();
+        ClearBackground(BLACK);
+        DrawText("Carregando mapa...", 800, 500, 30, WHITE);
+        EndDrawing();
+    }
+
     while (!WindowShouldClose()) {
-        // --- Controle de seleção ---
+
+        // --- Navegação entre fases ---
         if (IsKeyPressed(KEY_RIGHT)) {
             faseSelecionada++;
             if (faseSelecionada > 5) faseSelecionada = 1;
@@ -91,7 +97,7 @@ void MostrarMapaFases(void) {
             if (faseSelecionada < 1) faseSelecionada = 5;
         }
 
-        // --- Entrar ou concluir fase ---
+        // --- Entrar na fase selecionada (somente ao apertar ENTER) ---
         if (IsKeyPressed(KEY_ENTER)) {
             NoFase* atual = NULL;
             switch (faseSelecionada) {
@@ -103,54 +109,58 @@ void MostrarMapaFases(void) {
             }
 
             if (atual && atual->desbloqueada) {
-                // --- Entrar na FASE 1 ---
-                if (atual->id == 1) {
-                    Player player;
-                    Fase1(&player); // Abre o mapa jogável da Raylib (quadrado andando)
+                Player player;
+                InitPlayer(&player);
+
+                // Abre a fase correspondente
+                switch (atual->id) {
+                    case 1: Fase1(&player); break;
+                    case 2: Fase2(&player); break;
+                    case 3: Fase3(&player); break;
+                    case 4: Fase4(&player); break;
+                    case 5: Fase5(&player); break;
                 }
 
-                printf("FASE %d CONCLUÍDA!\n", atual->id);
                 faseConcluida = atual->id;
                 AtualizarDesbloqueios(f1, faseConcluida);
-            } else {
-                printf("Fase %d está bloqueada!\n", faseSelecionada);
             }
         }
 
-        // --- Efeito de brilho pulsante ---
-        float brilho = (sinf(GetTime() * 2) + 1.0f) / 2.0f;
+        // --- Sair do mapa (voltar ao menu) ---
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            return false; // volta pro menu
+        }
 
         // --- Desenho ---
         BeginDrawing();
         ClearBackground((Color){35, 25, 10, 255});
 
-        // Posições fixas da árvore binária
+        float brilho = (sinf(GetTime() * 2) + 1.0f) / 2.0f;
+
         Vector2 posF1 = {screenWidth / 2, 200};
         Vector2 posF2 = {screenWidth / 2 - 350, 450};
         Vector2 posF3 = {screenWidth / 2 + 350, 450};
         Vector2 posF4 = {screenWidth / 2 - 500, 700};
         Vector2 posF5 = {screenWidth / 2 + 500, 700};
 
-        // Linhas douradas conectando as fases
         DrawLineBezier(posF1, posF2, 6, GOLD);
         DrawLineBezier(posF1, posF3, 6, GOLD);
         DrawLineBezier(posF2, posF4, 6, GOLD);
         DrawLineBezier(posF3, posF5, 6, GOLD);
 
-        // Desenha os nós das fases
         DesenharFase(f1, posF1, faseSelecionada, brilho);
         DesenharFase(f2, posF2, faseSelecionada, brilho);
         DesenharFase(f3, posF3, faseSelecionada, brilho);
         DesenharFase(f4, posF4, faseSelecionada, brilho);
         DesenharFase(f5, posF5, faseSelecionada, brilho);
 
-        // Interface de texto
         DrawText("MAPA DE FASES", 780, 40, 40, YELLOW);
         DrawText("← → para selecionar | ENTER para jogar", 600, 100, 20, RAYWHITE);
+        DrawText("ESC para voltar ao menu", 780, 130, 20, GRAY);
         DrawText("A fase amarela está selecionada", 20, screenHeight - 60, 20, GRAY);
 
         EndDrawing();
     }
 
-    CloseWindow();
+    return false;
 }

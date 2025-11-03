@@ -1,7 +1,7 @@
 #include "menu.h"
-#include "../mapa/mapa_fases.h"  // <- Importa o mapa das fases (necessário)
+#include "../mapa/mapa_fases.h"
 
-typedef enum { OPC_JOGAR = 0, OPC_INSTRUCOES, TOTAL_OPCOES } MenuOpcao;
+typedef enum { OPC_JOGAR = 0, OPC_INSTRUCOES, OPC_SAIR, TOTAL_OPCOES } MenuOpcao;
 
 bool MostrarMenu(void) {
     Texture2D background = LoadTexture("assets/menu/menuaed.png");
@@ -10,6 +10,7 @@ bool MostrarMenu(void) {
     // Posições baseadas na arte 1920x1080
     Vector2 posJogar = { 700, 430 };
     Vector2 posInstrucoes = { 590, 665 };
+    Vector2 posSair = { 830, 850 };
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -25,16 +26,21 @@ bool MostrarMenu(void) {
             WHITE
         );
 
-        // --- Indicador de seleção ---
+        // --- Indicador de seleção (seta piscante dourada) ---
         int fontSize = 60;
-        Color corSeta = GOLD; // seta dourada piscando
+        Color corSeta = GOLD;
 
         if ((int)(GetTime() * 2) % 2 == 0) {
             if (opcaoSelecionada == OPC_JOGAR)
                 DrawText(">", posJogar.x - 80, posJogar.y, fontSize, corSeta);
             else if (opcaoSelecionada == OPC_INSTRUCOES)
                 DrawText(">", posInstrucoes.x - 80, posInstrucoes.y, fontSize, corSeta);
+            else if (opcaoSelecionada == OPC_SAIR)
+                DrawText(">", posSair.x - 80, posSair.y, fontSize, corSeta);
         }
+
+        // --- Opção "SAIR" escrita ---
+        DrawText("SAIR", posSair.x, posSair.y, 60, WHITE);
 
         EndDrawing();
 
@@ -46,14 +52,17 @@ bool MostrarMenu(void) {
 
         // --- Seleção ---
         if (IsKeyPressed(KEY_ENTER)) {
-            UnloadTexture(background);
-
             if (opcaoSelecionada == OPC_JOGAR) {
-                // 👉 Aqui entra o mapa binário de fases
-                MostrarMapaFases();
-                return true;
-            } else {
-                MostrarInstrucoes();
+                UnloadTexture(background);
+                return true; // apenas retorna — o main chamará o mapa
+            }
+            else if (opcaoSelecionada == OPC_INSTRUCOES) {
+                MostrarInstrucoes(); // abre tela de instruções
+                background = LoadTexture("assets/menu/menuaed.png"); // recarrega ao voltar
+            }
+            else if (opcaoSelecionada == OPC_SAIR) {
+                UnloadTexture(background);
+                return false; // encerra o jogo
             }
         }
     }
@@ -63,16 +72,22 @@ bool MostrarMenu(void) {
 }
 
 void MostrarInstrucoes(void) {
-    while (!WindowShouldClose()) {
+    bool voltar = false;
+
+    while (!WindowShouldClose() && !voltar) {
         BeginDrawing();
         ClearBackground(BLACK);
+
         DrawText("INSTRUÇÕES:", 100, 100, 50, YELLOW);
-        DrawText("Use as setas para mover", 120, 200, 30, WHITE);
+        DrawText("Use as setas ou A/D para mover", 120, 200, 30, WHITE);
         DrawText("Espaço para pular", 120, 250, 30, WHITE);
-        DrawText("ESC para voltar", 120, 350, 30, GRAY);
+
+        if ((int)(GetTime() * 2) % 2 == 0)
+            DrawText("Pressione ESC para voltar", 120, 350, 30, GRAY);
+
         EndDrawing();
 
         if (IsKeyPressed(KEY_ESCAPE))
-            break;
+            voltar = true;
     }
 }
