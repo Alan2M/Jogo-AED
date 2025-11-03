@@ -5,5 +5,6 @@
 #include <stdbool.h>
 
 bool MostrarMenu(void);
+void MostrarInstrucoes(void);
 
 #endif
