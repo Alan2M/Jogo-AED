@@ -1,0 +1,9 @@
+    {
+        "files.associations": {
+            "stdbool.h": "c",
+            "raylib.h": "c",
+            "player.h": "c",
+            "math.h": "c",
+            "fases.h": "c"
+        }
+    }

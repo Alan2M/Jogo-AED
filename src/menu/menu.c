@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "../mapa/mapa_fases.h"  // <- Importa o mapa das fases (necessário)
 
 typedef enum { OPC_JOGAR = 0, OPC_INSTRUCOES, TOTAL_OPCOES } MenuOpcao;
 
@@ -7,14 +8,14 @@ bool MostrarMenu(void) {
     int opcaoSelecionada = OPC_JOGAR;
 
     // Posições baseadas na arte 1920x1080
-    Vector2 posJogar = { 700, 430 };       // leve ajuste horizontal
-    Vector2 posInstrucoes = { 590, 665 };  // leve ajuste horizontal
+    Vector2 posJogar = { 700, 430 };
+    Vector2 posInstrucoes = { 590, 665 };
 
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        // Fundo preenchendo toda a tela
+        // --- Fundo preenchendo toda a tela ---
         DrawTexturePro(
             background,
             (Rectangle){0, 0, background.width, background.height},
@@ -26,10 +27,9 @@ bool MostrarMenu(void) {
 
         // --- Indicador de seleção ---
         int fontSize = 60;
-        Color corSeta = GOLD; // seta dourada
+        Color corSeta = GOLD; // seta dourada piscando
 
-        // Piscar leve para dar vida
-        if ((int)(GetTime() * 3) % 2 == 0) {
+        if ((int)(GetTime() * 2) % 2 == 0) {
             if (opcaoSelecionada == OPC_JOGAR)
                 DrawText(">", posJogar.x - 80, posJogar.y, fontSize, corSeta);
             else if (opcaoSelecionada == OPC_INSTRUCOES)
@@ -47,10 +47,14 @@ bool MostrarMenu(void) {
         // --- Seleção ---
         if (IsKeyPressed(KEY_ENTER)) {
             UnloadTexture(background);
-            if (opcaoSelecionada == OPC_JOGAR)
+
+            if (opcaoSelecionada == OPC_JOGAR) {
+                // 👉 Aqui entra o mapa binário de fases
+                MostrarMapaFases();
                 return true;
-            else
+            } else {
                 MostrarInstrucoes();
+            }
         }
     }
 

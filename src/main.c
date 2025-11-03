@@ -1,7 +1,7 @@
 #include "raylib.h"
 #include "player/player.h"
-#include "mapa/mapa.h"
 #include "menu/menu.h"
+#include "mapa/mapa_fases.h"   // <- novo sistema de mapa binário
 
 int main(void)
 {
@@ -18,42 +18,10 @@ int main(void)
         return 0;
     }
 
-    // --- INICIALIZA O JOGO ---
-    Player player;
-    InitPlayer(&player);
+    // --- ABRE O MAPA DE FASES ---
+    MostrarMapaFases(); // <- nova função do sistema de árvore binária
 
-    Mapa mapa;
-    InitMapa(&mapa);
-
-    Camera2D camera = { 0 };
-    camera.target = (Vector2){ player.rect.x + player.rect.width / 2, player.rect.y + player.rect.height / 2 };
-    camera.offset = (Vector2){ screenWidth / 2.0f, screenHeight / 2.0f };
-    camera.rotation = 0.0f;
-    camera.zoom = 1.0f;
-
-    // --- LOOP PRINCIPAL DO JOGO ---
-    while (!WindowShouldClose())
-    {
-        // Atualiza o jogador e a câmera
-        UpdatePlayer(&player, mapa.ground);
-        camera.target = (Vector2){ player.rect.x + player.rect.width / 2, player.rect.y + player.rect.height / 2 };
-
-        // Desenho da tela
-        BeginDrawing();
-        ClearBackground(SKYBLUE);
-
-        BeginMode2D(camera);
-        DrawMapa(mapa);
-        DrawPlayer(player);
-        EndMode2D();
-
-        // HUD simples
-        DrawText("Elements", 10, 10, 20, DARKBLUE);
-
-        EndDrawing();
-    }
-
-    // Finaliza o jogo
+    // --- Finaliza o jogo ---
     CloseWindow();
     return 0;
 }
