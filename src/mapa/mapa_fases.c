@@ -5,6 +5,7 @@
 #include <math.h>
 #include "fases/fases.h"
 #include "../player/player.h"
+#include "../game/game.h"
 
 // Estrutura da árvore binária
 typedef struct NoFase {
@@ -13,6 +14,9 @@ typedef struct NoFase {
     struct NoFase* esquerda;
     struct NoFase* direita;
 } NoFase;
+
+// Progresso em memória (por sessão): bits das fases concluídas (1..5)
+static unsigned int gProgressMask = 0;
 
 // --- Funções auxiliares ---
 NoFase* CriarFase(int id, bool desbloqueada) {
@@ -74,8 +78,16 @@ bool MostrarMapaFases(void) {
     Conectar(f2, f4, NULL);
     Conectar(f3, NULL, f5);
 
+    // Aplica progresso em memória para reabrir fases já concluídas nesta sessão
+    for (int i = 1; i <= 5; i++) {
+        if (gProgressMask & (1u << i)) {
+            AtualizarDesbloqueios(f1, i);
+        }
+    }
+
     int faseSelecionada = 1;
     int faseConcluida = 0;
+    bool confirmExit = false;
 
     // 🟡 EVITA que o ENTER do menu entre direto na Fase 1
     while (IsKeyDown(KEY_ENTER)) {
@@ -85,20 +97,28 @@ bool MostrarMapaFases(void) {
         EndDrawing();
     }
 
+    // Evita que o ESC usado para sair da fase acione o overlay imediatamente
+    while (IsKeyDown(KEY_ESCAPE)) {
+        BeginDrawing();
+        ClearBackground(BLACK);
+        DrawText("Carregando mapa...", 800, 500, 30, WHITE);
+        EndDrawing();
+    }
+
     while (!WindowShouldClose()) {
 
         // --- Navegação entre fases ---
-        if (IsKeyPressed(KEY_RIGHT)) {
+        if (!confirmExit && IsKeyPressed(KEY_RIGHT)) {
             faseSelecionada++;
             if (faseSelecionada > 5) faseSelecionada = 1;
         }
-        if (IsKeyPressed(KEY_LEFT)) {
+        if (!confirmExit && IsKeyPressed(KEY_LEFT)) {
             faseSelecionada--;
             if (faseSelecionada < 1) faseSelecionada = 5;
         }
 
         // --- Entrar na fase selecionada (somente ao apertar ENTER) ---
-        if (IsKeyPressed(KEY_ENTER)) {
+        if (!confirmExit && IsKeyPressed(KEY_ENTER)) {
             NoFase* atual = NULL;
             switch (faseSelecionada) {
                 case 1: atual = f1; break;
@@ -109,23 +129,30 @@ bool MostrarMapaFases(void) {
             }
 
             if (atual && atual->desbloqueada) {
+                bool concluida = false;
                 // Abre a fase correspondente
                 switch (atual->id) {
-                    case 1: Fase1(); break;
-                    case 2: Fase2(); break;
-                    case 3: Fase3(); break;
-                    case 4: Fase4(); break;
-                    case 5: Fase5(); break;
+                    case 1: concluida = Fase1(); break;
+                    case 2: concluida = Fase2(); break;
+                    case 3: concluida = Fase3(); break;
+                    case 4: concluida = Fase4(); break;
+                    case 5: concluida = Fase5(); break;
                 }
 
-                faseConcluida = atual->id;
-                AtualizarDesbloqueios(f1, faseConcluida);
+                if (concluida) {
+                    faseConcluida = atual->id;
+                    gProgressMask |= (1u << faseConcluida);
+                    AtualizarDesbloqueios(f1, faseConcluida);
+                }
+
+                // Se a fase solicitou retorno ao menu, sai do mapa
+                if (Game_ShouldReturnToMenu()) { Game_ClearReturnToMenu(); EndDrawing(); return false; }
             }
         }
 
         // --- Sair do mapa (voltar ao menu) ---
         if (IsKeyPressed(KEY_ESCAPE)) {
-            return false; // volta pro menu
+            confirmExit = !confirmExit; // alterna confirmação
         }
 
         // --- Desenho ---
@@ -156,8 +183,20 @@ bool MostrarMapaFases(void) {
         DrawText("ESC para voltar ao menu", 780, 130, 20, GRAY);
         DrawText("A fase amarela está selecionada", 20, screenHeight - 60, 20, GRAY);
 
+        if (confirmExit) {
+            DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0,0,0,180});
+            DrawText("Voltar ao menu?", 820, 480, 30, RAYWHITE);
+            DrawText("Y = Sim   N = Nao", 835, 520, 20, LIGHTGRAY);
+            if (IsKeyPressed(KEY_Y)) { EndDrawing(); return false; }
+            if (IsKeyPressed(KEY_N)) { confirmExit = false; }
+        }
+
         EndDrawing();
     }
 
     return false;
+}
+
+void ResetarProgressoFases(void) {
+    gProgressMask = 0;
 }

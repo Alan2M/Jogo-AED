@@ -8,4 +8,7 @@
 bool MostrarMenu(void);
 void MostrarInstrucoes(void);
 
+// Prompt para nome do jogador
+bool PromptPlayerName(void);
+
 #endif

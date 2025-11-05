@@ -2,6 +2,7 @@
 #include "player/player.h"
 #include "menu/menu.h"
 #include "mapa/mapa_fases.h"
+#include "ranking/ranking.h"
 
 int main(void)
 {
@@ -11,6 +12,7 @@ int main(void)
     InitWindow(screenWidth, screenHeight, "Elements");
     SetExitKey(0);
     SetTargetFPS(60);
+    Ranking_Init();
 
     bool rodando = true;
 

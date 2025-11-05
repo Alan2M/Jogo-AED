@@ -40,7 +40,7 @@ void InitFireboy(Player *p) {
     p->frames[6] = LoadTexture("assets/fireboy/walk/WALK7.png");
     p->frames[7] = LoadTexture("assets/fireboy/walk/WALK8.png");
 
-    p->totalFrames = 4;
+    p->totalFrames = 8;
     p->frameAtual = 0;
     p->tempoFrame = 0.1f;
     p->timer = 0.0f;
@@ -63,7 +63,7 @@ void InitWatergirl(Player *p) {
     p->frames[6] = LoadTexture("assets/fireboy/walk/WALK7.png");
     p->frames[7] = LoadTexture("assets/fireboy/walk/WALK8.png");
 
-    p->totalFrames = 4;
+    p->totalFrames = 8;
     p->frameAtual = 0;
     p->tempoFrame = 0.1f;
     p->timer = 0.0f;
@@ -113,7 +113,7 @@ void UpdatePlayer(Player *p, Rectangle ground, int keyLeft, int keyRight, int ke
 
     // Pulo
     if (IsKeyPressed(keyJump) && !p->isJumping) {
-        p->velocity.y = -10;
+        p->velocity.y = -30;
         p->isJumping = true;
     }
 
@@ -126,7 +126,17 @@ void UpdatePlayer(Player *p, Rectangle ground, int keyLeft, int keyRight, int ke
 // --- Desenho ---
 void DrawPlayer(Player p) {
     Texture2D frame = p.frames[p.frameAtual];
-    Rectangle dest = {p.rect.x, p.rect.y, p.rect.width, p.rect.height};
+    // Mantém proporção do sprite dentro do retângulo do jogador,
+    // alinhando pelos pés (base) e centralizando na largura.
+    float aspect = (float)frame.width / (float)frame.height;
+    float wFromH = p.rect.height * aspect;
+    float hFromW = p.rect.width / aspect;
+    float dw, dh;
+    if (wFromH <= p.rect.width) { dw = wFromH; dh = p.rect.height; }
+    else { dw = p.rect.width; dh = hFromW; }
+    float dx = p.rect.x + (p.rect.width - dw) * 0.5f;
+    float dy = p.rect.y + (p.rect.height - dh);
+    Rectangle dest = { dx, dy, dw, dh };
 
     if (p.facingRight)
         DrawTexturePro(frame, (Rectangle){0, 0, frame.width, frame.height}, dest, (Vector2){0, 0}, 0.0f, WHITE);

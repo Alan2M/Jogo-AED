@@ -3,5 +3,7 @@
 #include <stdbool.h>
 
 bool MostrarMapaFases(void);
+// Reseta progresso em memória (desbloqueios por sessão)
+void ResetarProgressoFases(void);
 
 #endif
