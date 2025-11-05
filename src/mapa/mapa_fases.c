@@ -109,16 +109,13 @@ bool MostrarMapaFases(void) {
             }
 
             if (atual && atual->desbloqueada) {
-                Player player;
-                InitPlayer(&player);
-
                 // Abre a fase correspondente
                 switch (atual->id) {
-                    case 1: Fase1(&player); break;
-                    case 2: Fase2(&player); break;
-                    case 3: Fase3(&player); break;
-                    case 4: Fase4(&player); break;
-                    case 5: Fase5(&player); break;
+                    case 1: Fase1(); break;
+                    case 2: Fase2(); break;
+                    case 3: Fase3(); break;
+                    case 4: Fase4(); break;
+                    case 5: Fase5(); break;
                 }
 
                 faseConcluida = atual->id;

@@ -1,12 +1,18 @@
 #include "fases.h"
-#include "raylib.h"
+#include "../../player/player.h"
 
-void Fase1(Player* player) {
+void Fase1(void) {
     Rectangle ground = { 0, 800, 1920, 280 };
-    InitPlayer(player);
+
+    Player fireboy, watergirl, earthboy;
+    InitFireboy(&fireboy);
+    InitWatergirl(&watergirl);
+    InitEarthboy(&earthboy);
 
     while (!WindowShouldClose()) {
-        UpdatePlayer(player, ground);
+        UpdatePlayer(&fireboy, ground, KEY_LEFT, KEY_RIGHT, KEY_UP);
+        UpdatePlayer(&watergirl, ground, KEY_A, KEY_D, KEY_W);
+        UpdatePlayer(&earthboy, ground, KEY_H, KEY_K, KEY_U); // UHJK esquema
 
         BeginDrawing();
         ClearBackground((Color){180, 80, 50, 255});
@@ -14,10 +20,16 @@ void Fase1(Player* player) {
         DrawText("Pressione ESC para voltar", 700, 200, 20, WHITE);
 
         DrawRectangleRec(ground, BROWN);
-        DrawPlayer(*player);
+        DrawPlayer(fireboy);
+        DrawPlayer(watergirl);
+        DrawPlayer(earthboy);
 
         EndDrawing();
 
-        if (IsKeyPressed(KEY_ESCAPE)) break; // sai da fase
+        if (IsKeyPressed(KEY_ESCAPE)) break;
     }
+
+    UnloadPlayer(&fireboy);
+    UnloadPlayer(&watergirl);
+    UnloadPlayer(&earthboy);
 }

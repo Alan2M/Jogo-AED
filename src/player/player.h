@@ -4,24 +4,25 @@
 #include "raylib.h"
 #include <stdbool.h>
 
-#define MAX_FRAMES 6
-
-typedef struct {
+typedef struct Player {
     Rectangle rect;
     Vector2 velocity;
     bool isJumping;
     bool facingRight;
     bool idle;
 
-    Texture2D frames[MAX_FRAMES];
-    int frameAtual;
+    Texture2D frames[10];
     int totalFrames;
+    int frameAtual;
     float tempoFrame;
     float timer;
 } Player;
 
-void InitPlayer(Player *p);
-void UpdatePlayer(Player *p, Rectangle ground);
+void InitEarthboy(Player *p);
+void InitFireboy(Player *p);
+void InitWatergirl(Player *p);
+
+void UpdatePlayer(Player *p, Rectangle ground, int keyLeft, int keyRight, int keyJump);
 void DrawPlayer(Player p);
 void UnloadPlayer(Player *p);
 
