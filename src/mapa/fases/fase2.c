@@ -20,6 +20,22 @@ bool Fase2(void) {
     InitWatergirl(&watergirl);
     InitEarthboy(&earthboy);
 
+    // Background da fase (exportado do Tiled como PNG)
+    // Tenta caminhos alternativos para evitar problemas com acentos
+    Texture2D background = {0};
+    Texture2D tmp = LoadTexture("assets/teste/sem título.png");
+    if (tmp.id != 0) background = tmp; else {
+        tmp = LoadTexture("assets/teste/sem titulo.png");
+        if (tmp.id != 0) background = tmp; else {
+            // Arquivo visto no diretório: "fase2.png.png"
+            tmp = LoadTexture("assets/teste/fase2.png.png");
+            if (tmp.id != 0) background = tmp; else {
+                tmp = LoadTexture("assets/teste/fase2.png");
+                if (tmp.id != 0) background = tmp;
+            }
+        }
+    }
+
     bool completed = false;
     float elapsed = 0.0f;
     while (!WindowShouldClose()) {
@@ -51,6 +67,15 @@ bool Fase2(void) {
 
         BeginDrawing();
         ClearBackground((Color){180, 80, 50, 255});
+        // Desenha o background se carregado com sucesso
+        if (background.id != 0) {
+            Rectangle src = {0, 0, (float)background.width, (float)background.height};
+            Rectangle dst = {0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()};
+            DrawTexturePro(background, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+        } else {
+            // Aviso visual para facilitar debug se a textura não carregar
+            DrawText("(Background nao carregado)", 20, 20, 20, GRAY);
+        }
         DrawText("FASE 2", 900, 100, 40, GOLD);
         DrawText("Pressione ESC para voltar", 700, 200, 20, WHITE);
 
@@ -73,6 +98,7 @@ bool Fase2(void) {
     UnloadPlayer(&fireboy);
     UnloadPlayer(&watergirl);
     UnloadPlayer(&earthboy);
+    if (background.id != 0) UnloadTexture(background);
     if (completed) Ranking_Add(2, Game_GetPlayerName(), elapsed);
     return completed;
 }

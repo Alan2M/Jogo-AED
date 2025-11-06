@@ -11,5 +11,6 @@ bool Fase2(void);
 bool Fase3(void);
 bool Fase4(void);
 bool Fase5(void);
+bool FaseTeste(void);
 
 #endif

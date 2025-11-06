@@ -181,6 +181,7 @@ bool MostrarMapaFases(void) {
         DrawText("MAPA DE FASES", 780, 40, 40, YELLOW);
         DrawText("← → para selecionar | ENTER para jogar", 600, 100, 20, RAYWHITE);
         DrawText("ESC para voltar ao menu", 780, 130, 20, GRAY);
+        DrawText("T para Fase Teste (dev)", 780, 160, 20, (Color){180,180,220,255});
         DrawText("A fase amarela está selecionada", 20, screenHeight - 60, 20, GRAY);
 
         if (confirmExit) {
@@ -192,6 +193,11 @@ bool MostrarMapaFases(void) {
         }
 
         EndDrawing();
+
+        // Atalho dev: abrir Fase Teste (não altera desbloqueios)
+        if (!confirmExit && IsKeyPressed(KEY_T)) {
+            FaseTeste();
+        }
     }
 
     return false;

@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include <string.h>
 #include <stdio.h>
+#include "../structure/quicksort.h"
 
 #define MAX_PHASES 6
 #define MAX_ENTRIES 64
@@ -33,16 +34,15 @@ void Ranking_Add(int faseId, const char* name, float timeSec) {
     }
     e.timeSec = timeSec;
     gRank[faseId][c] = e;
-    // Ordena simples (insertion-like): usa qsort local
-    // Nota: w64devkit tem qsort em stdlib
-    // Mas para evitar include, fazemos uma passada simples de bubble
-    for (int i = gCount[faseId]-1; i > 0; --i) {
-        if (gRank[faseId][i].timeSec < gRank[faseId][i-1].timeSec) {
-            RankEntry tmp = gRank[faseId][i-1];
-            gRank[faseId][i-1] = gRank[faseId][i];
-            gRank[faseId][i] = tmp;
-        }
+    // Ordena pelo tempo (asc) e nome (asc) usando quicksort genérico
+    int cmpRank(const void* a, const void* b) {
+        const RankEntry* A = (const RankEntry*)a;
+        const RankEntry* B = (const RankEntry*)b;
+        if (A->timeSec < B->timeSec) return -1;
+        if (A->timeSec > B->timeSec) return 1;
+        return strcmp(A->name, B->name);
     }
+    quicksort(gRank[faseId], gCount[faseId], sizeof(RankEntry), cmpRank);
 }
 
 int Ranking_GetCount(int faseId) {
