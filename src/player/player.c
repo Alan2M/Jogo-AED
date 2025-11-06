@@ -1,6 +1,5 @@
 #include "player.h"
 
-// --- EARTHBOY padrão (caso queira manter ele) ---
 void InitEarthboy(Player *p) {
     p->rect = (Rectangle){100, 300, 60, 60};
     p->velocity = (Vector2){0, 0};
