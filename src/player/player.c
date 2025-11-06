@@ -8,16 +8,19 @@ void InitEarthboy(Player *p) {
     p->facingRight = true;
     p->idle = true;
 
-    p->frames[0] = LoadTexture("assets/earthboy/walk/WALK1.png");
-    p->frames[1] = LoadTexture("assets/earthboy/walk/WALK2.png");
-    p->frames[2] = LoadTexture("assets/earthboy/walk/WALK3.png");
-    p->frames[3] = LoadTexture("assets/earthboy/walk/WALK4.png");
-    p->frames[4] = LoadTexture("assets/earthboy/walk/WALK5.png");
-    p->frames[5] = LoadTexture("assets/earthboy/walk/WALK6.png");
-    p->frames[6] = LoadTexture("assets/earthboy/walk/WALK7.png");
-    p->frames[7] = LoadTexture("assets/earthboy/walk/WALK8.png");
+    p->walkFrames[0] = LoadTexture("assets/earthboy/walk/WALK1.png");
+    p->walkFrames[1] = LoadTexture("assets/earthboy/walk/WALK2.png");
+    p->walkFrames[2] = LoadTexture("assets/earthboy/walk/WALK3.png");
+    p->walkFrames[3] = LoadTexture("assets/earthboy/walk/WALK4.png");
+    p->walkFrames[4] = LoadTexture("assets/earthboy/walk/WALK5.png");
+    p->walkFrames[5] = LoadTexture("assets/earthboy/walk/WALK6.png");
+    p->walkFrames[6] = LoadTexture("assets/earthboy/walk/WALK7.png");
+    p->walkFrames[7] = LoadTexture("assets/earthboy/walk/WALK8.png");
+    p->totalWalkFrames = 8;
 
-    p->totalFrames = 8;
+    p->idleFrames[0] = LoadTexture("assets/earthboy/IDLE.png");
+    p->totalIdleFrames = 1;
+
     p->frameAtual = 0;
     p->tempoFrame = 0.1f;
     p->timer = 0.0f;
@@ -31,16 +34,22 @@ void InitFireboy(Player *p) {
     p->facingRight = true;
     p->idle = true;
 
-    p->frames[0] = LoadTexture("assets/fireboy/walk/WALK1.png");
-    p->frames[1] = LoadTexture("assets/fireboy/walk/WALK2.png");
-    p->frames[2] = LoadTexture("assets/fireboy/walk/WALK3.png");
-    p->frames[3] = LoadTexture("assets/fireboy/walk/WALK4.png");
-    p->frames[4] = LoadTexture("assets/fireboy/walk/WALK5.png");
-    p->frames[5] = LoadTexture("assets/fireboy/walk/WALK6.png");
-    p->frames[6] = LoadTexture("assets/fireboy/walk/WALK7.png");
-    p->frames[7] = LoadTexture("assets/fireboy/walk/WALK8.png");
+    p->walkFrames[0] = LoadTexture("assets/fireboy/walk/WALK1.png");
+    p->walkFrames[1] = LoadTexture("assets/fireboy/walk/WALK2.png");
+    p->walkFrames[2] = LoadTexture("assets/fireboy/walk/WALK3.png");
+    p->walkFrames[3] = LoadTexture("assets/fireboy/walk/WALK4.png");
+    p->walkFrames[4] = LoadTexture("assets/fireboy/walk/WALK5.png");
+    p->walkFrames[5] = LoadTexture("assets/fireboy/walk/WALK6.png");
+    p->walkFrames[6] = LoadTexture("assets/fireboy/walk/WALK7.png");
+    p->walkFrames[7] = LoadTexture("assets/fireboy/walk/WALK8.png");
+    p->totalWalkFrames = 8;
 
-    p->totalFrames = 8;
+    p->idleFrames[0] = LoadTexture("assets/fireboy/idle/IDLE1.png");
+    p->idleFrames[1] = LoadTexture("assets/fireboy/idle/IDLE2.png");
+    p->idleFrames[2] = LoadTexture("assets/fireboy/idle/IDLE3.png");
+    p->idleFrames[3] = LoadTexture("assets/fireboy/idle/IDLE4.png");
+    p->totalIdleFrames = 4;
+
     p->frameAtual = 0;
     p->tempoFrame = 0.1f;
     p->timer = 0.0f;
@@ -54,16 +63,22 @@ void InitWatergirl(Player *p) {
     p->facingRight = true;
     p->idle = true;
 
-    p->frames[0] = LoadTexture("assets/fireboy/walk/WALK1.png");
-    p->frames[1] = LoadTexture("assets/fireboy/walk/WALK2.png");
-    p->frames[2] = LoadTexture("assets/fireboy/walk/WALK3.png");
-    p->frames[3] = LoadTexture("assets/fireboy/walk/WALK4.png");
-    p->frames[4] = LoadTexture("assets/fireboy/walk/WALK5.png");
-    p->frames[5] = LoadTexture("assets/fireboy/walk/WALK6.png");
-    p->frames[6] = LoadTexture("assets/fireboy/walk/WALK7.png");
-    p->frames[7] = LoadTexture("assets/fireboy/walk/WALK8.png");
+    p->walkFrames[0] = LoadTexture("assets/fireboy/walk/WALK1.png");
+    p->walkFrames[1] = LoadTexture("assets/fireboy/walk/WALK2.png");
+    p->walkFrames[2] = LoadTexture("assets/fireboy/walk/WALK3.png");
+    p->walkFrames[3] = LoadTexture("assets/fireboy/walk/WALK4.png");
+    p->walkFrames[4] = LoadTexture("assets/fireboy/walk/WALK5.png");
+    p->walkFrames[5] = LoadTexture("assets/fireboy/walk/WALK6.png");
+    p->walkFrames[6] = LoadTexture("assets/fireboy/walk/WALK7.png");
+    p->walkFrames[7] = LoadTexture("assets/fireboy/walk/WALK8.png");
+    p->totalWalkFrames = 8;
 
-    p->totalFrames = 8;
+    p->idleFrames[0] = LoadTexture("assets/fireboy/idle/IDLE1.png");
+    p->idleFrames[1] = LoadTexture("assets/fireboy/idle/IDLE2.png");
+    p->idleFrames[2] = LoadTexture("assets/fireboy/idle/IDLE3.png");
+    p->idleFrames[3] = LoadTexture("assets/fireboy/idle/IDLE4.png");
+    p->totalIdleFrames = 4;
+
     p->frameAtual = 0;
     p->tempoFrame = 0.1f;
     p->timer = 0.0f;
@@ -89,16 +104,24 @@ void UpdatePlayer(Player *p, Rectangle ground, int keyLeft, int keyRight, int ke
 
     // Animação — troca de frames se estiver se movendo
     if (moving) {
+    p->timer += GetFrameTime();
+    if (p->timer >= p->tempoFrame) {
+        p->frameAtual++;
+        if (p->frameAtual >= p->totalWalkFrames)
+            p->frameAtual = 0;
+        p->timer = 0.0f;
+        }
+    } 
+    else { // Idle
         p->timer += GetFrameTime();
         if (p->timer >= p->tempoFrame) {
             p->frameAtual++;
-            if (p->frameAtual >= p->totalFrames)
+            if (p->frameAtual >= p->totalIdleFrames)
                 p->frameAtual = 0;
             p->timer = 0.0f;
         }
-    } else {
-        p->frameAtual = 0;
     }
+
 
     // Gravidade
     p->velocity.y += 0.5f;
@@ -113,7 +136,7 @@ void UpdatePlayer(Player *p, Rectangle ground, int keyLeft, int keyRight, int ke
 
     // Pulo
     if (IsKeyPressed(keyJump) && !p->isJumping) {
-        p->velocity.y = -30;
+        p->velocity.y = -15;
         p->isJumping = true;
     }
 
@@ -125,7 +148,17 @@ void UpdatePlayer(Player *p, Rectangle ground, int keyLeft, int keyRight, int ke
 
 // --- Desenho ---
 void DrawPlayer(Player p) {
-    Texture2D frame = p.frames[p.frameAtual];
+    Texture2D frame;
+    if (p.idle) {
+        if (p.frameAtual >= p.totalIdleFrames) p.frameAtual = 0; // Reinicia se passou do último frame
+        frame = p.idleFrames[p.frameAtual]; // Usa o frame atual da animação idle
+    } 
+    else {
+        if (p.frameAtual >= p.totalWalkFrames) p.frameAtual = 0; // Reinicia se passou do último frame
+        frame = p.walkFrames[p.frameAtual]; // Usa o frame atual da animação walk
+    }
+
+
     // Mantém proporção do sprite dentro do retângulo do jogador,
     // alinhando pelos pés (base) e centralizando na largura.
     float aspect = (float)frame.width / (float)frame.height;
@@ -146,7 +179,7 @@ void DrawPlayer(Player p) {
 
 // --- Liberar texturas ---
 void UnloadPlayer(Player *p) {
-    for (int i = 0; i < p->totalFrames; i++) {
-        UnloadTexture(p->frames[i]);
-    }
+    for (int i = 0; i < p->totalWalkFrames; i++) UnloadTexture(p->walkFrames[i]);
+    for (int i = 0; i < p->totalIdleFrames; i++) UnloadTexture(p->idleFrames[i]);
 }
+

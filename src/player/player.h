@@ -11,8 +11,11 @@ typedef struct Player {
     bool facingRight;
     bool idle;
 
-    Texture2D frames[10];
-    int totalFrames;
+    Texture2D walkFrames[8];
+    Texture2D idleFrames[4];
+    int totalWalkFrames;
+    int totalIdleFrames;
+    
     int frameAtual;
     float tempoFrame;
     float timer;
