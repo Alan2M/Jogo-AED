@@ -62,21 +62,19 @@ void InitWatergirl(Player *p) {
     p->facingRight = true;
     p->idle = true;
 
-    p->walkFrames[0] = LoadTexture("assets/fireboy/walk/WALK1.png");
-    p->walkFrames[1] = LoadTexture("assets/fireboy/walk/WALK2.png");
-    p->walkFrames[2] = LoadTexture("assets/fireboy/walk/WALK3.png");
-    p->walkFrames[3] = LoadTexture("assets/fireboy/walk/WALK4.png");
-    p->walkFrames[4] = LoadTexture("assets/fireboy/walk/WALK5.png");
-    p->walkFrames[5] = LoadTexture("assets/fireboy/walk/WALK6.png");
-    p->walkFrames[6] = LoadTexture("assets/fireboy/walk/WALK7.png");
-    p->walkFrames[7] = LoadTexture("assets/fireboy/walk/WALK8.png");
+    p->walkFrames[0] = LoadTexture("assets/watergirl/walk/WALK1.png");
+    p->walkFrames[1] = LoadTexture("assets/watergirl/walk/WALK2.png");
+    p->walkFrames[2] = LoadTexture("assets/watergirl/walk/WALK3.png");
+    p->walkFrames[3] = LoadTexture("assets/watergirl/walk/WALK4.png");
+    p->walkFrames[4] = LoadTexture("assets/watergirl/walk/WALK5.png");
+    p->walkFrames[5] = LoadTexture("assets/watergirl/walk/WALK6.png");
+    p->walkFrames[6] = LoadTexture("assets/watergirl/walk/WALK7.png");
+    p->walkFrames[7] = LoadTexture("assets/watergirl/walk/WALK8.png");
     p->totalWalkFrames = 8;
 
-    p->idleFrames[0] = LoadTexture("assets/fireboy/idle/IDLE1.png");
-    p->idleFrames[1] = LoadTexture("assets/fireboy/idle/IDLE2.png");
-    p->idleFrames[2] = LoadTexture("assets/fireboy/idle/IDLE3.png");
-    p->idleFrames[3] = LoadTexture("assets/fireboy/idle/IDLE4.png");
-    p->totalIdleFrames = 4;
+    p->idleFrames[0] = LoadTexture("assets/watergirl/IDLE.png");
+
+    p->totalIdleFrames = 1;
 
     p->frameAtual = 0;
     p->tempoFrame = 0.1f;
