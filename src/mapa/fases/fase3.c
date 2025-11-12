@@ -57,7 +57,7 @@ bool Fase3(void) {
         ClearBackground((Color){180, 80, 50, 255});
         DrawText("FASE 3", 900, 100, 40, GOLD);
         DrawText("Empurre a caixa (colida e mova)", 700, 160, 20, WHITE);
-        DrawText("Pêndulo (fulcro central): suba e ele inclina", 700, 230, 20, WHITE);
+        // Texto do pêndulo removido conforme solicitado
         DrawText("Pressione ESC para voltar", 700, 200, 20, WHITE);
 
         DrawRectangleRec(ground, BROWN);

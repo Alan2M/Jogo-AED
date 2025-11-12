@@ -4,18 +4,24 @@
 #include "../ranking/ranking.h"
 #include <string.h>
 
-typedef enum { OPC_JOGAR = 0, OPC_TROCAR_USUARIO, OPC_RANKING, OPC_INSTRUCOES, OPC_SAIR, TOTAL_OPCOES } MenuOpcao;
+// Ordem visual: JOGAR, RANKING, TROCAR USUARIO, INSTRUCOES
+typedef enum { OPC_JOGAR = 0, OPC_RANKING, OPC_TROCAR_USUARIO, OPC_INSTRUCOES, OPC_SAIR, TOTAL_OPCOES } MenuOpcao;
 
 bool MostrarMenu(void) {
-    Texture2D background = LoadTexture("assets/menu/menuaed.png");
+    // Usa a arte principal do menu
+    Texture2D background = LoadTexture("assets/menu/menu.png");
+    if (background.id == 0) {
+        // Fallback para o antigo nome se necessário
+        background = LoadTexture("assets/menu/menuaed.png");
+    }
     int opcaoSelecionada = OPC_JOGAR;
 
-    // Posições baseadas na arte 1920x1080
-    Vector2 posJogar = { 700, 430 };
-    Vector2 posTrocar = { 700, 500 };
-    Vector2 posRanking = { 700, 570 };
-    Vector2 posInstrucoes = { 590, 665 };
-    Vector2 posSair = { 830, 850 };
+    // Posições da seta (ajustáveis)
+    Vector2 posJogar = { 770, 300 };
+    Vector2 posRanking = { 700, 435 };
+    Vector2 posTrocar = { 430, 570 };
+    Vector2 posInstrucoes = { 575, 710 };
+    //Vector2 posSair = { 830, 850 };
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -38,21 +44,17 @@ bool MostrarMenu(void) {
         if ((int)(GetTime() * 2) % 2 == 0) {
             if (opcaoSelecionada == OPC_JOGAR)
                 DrawText(">", posJogar.x - 80, posJogar.y, fontSize, corSeta);
-            else if (opcaoSelecionada == OPC_TROCAR_USUARIO && Game_HasPlayerName())
-                DrawText(">", posTrocar.x - 80, posTrocar.y, fontSize, corSeta);
             else if (opcaoSelecionada == OPC_RANKING)
                 DrawText(">", posRanking.x - 80, posRanking.y, fontSize, corSeta);
+            else if (opcaoSelecionada == OPC_TROCAR_USUARIO)
+                DrawText(">", posTrocar.x - 80, posTrocar.y, fontSize, corSeta);
             else if (opcaoSelecionada == OPC_INSTRUCOES)
                 DrawText(">", posInstrucoes.x - 80, posInstrucoes.y, fontSize, corSeta);
-            else if (opcaoSelecionada == OPC_SAIR)
-                DrawText(">", posSair.x - 80, posSair.y, fontSize, corSeta);
+            // Oculta indicador para SAIR
         }
 
-        // --- Opções escritas ---
-        DrawText("SAIR", posSair.x, posSair.y, 60, WHITE);
-        if (Game_HasPlayerName())
-            DrawText("TROCAR USUARIO", posTrocar.x, posTrocar.y, 50, LIGHTGRAY);
-        DrawText("RANKING", posRanking.x, posRanking.y, 50, LIGHTGRAY);
+        // --- Opções escritas --- (ocultadas na arte)
+        // Não desenhamos textos sobre a arte do menu.
 
         // Mostra usuário atual
         const char* uname = Game_GetPlayerName();
@@ -64,12 +66,12 @@ bool MostrarMenu(void) {
         if (IsKeyPressed(KEY_DOWN)) {
             do {
                 opcaoSelecionada = (opcaoSelecionada + 1) % TOTAL_OPCOES;
-            } while (!Game_HasPlayerName() && opcaoSelecionada == OPC_TROCAR_USUARIO);
+            } while (opcaoSelecionada == OPC_SAIR);
         }
         if (IsKeyPressed(KEY_UP)) {
             do {
                 opcaoSelecionada = (opcaoSelecionada - 1 + TOTAL_OPCOES) % TOTAL_OPCOES;
-            } while (!Game_HasPlayerName() && opcaoSelecionada == OPC_TROCAR_USUARIO);
+            } while (opcaoSelecionada == OPC_SAIR);
         }
 
         // --- Seleção ---
@@ -85,7 +87,7 @@ bool MostrarMenu(void) {
                 UnloadTexture(background);
                 return true; // apenas retorna — o main chamará o mapa
             }
-            else if (opcaoSelecionada == OPC_TROCAR_USUARIO && Game_HasPlayerName()) {
+            else if (opcaoSelecionada == OPC_TROCAR_USUARIO) {
                 // Troca de usuário: se confirmou, reseta progresso em memória
                 if (PromptPlayerName()) {
                     ResetarProgressoFases();
@@ -94,16 +96,15 @@ bool MostrarMenu(void) {
             }
             else if (opcaoSelecionada == OPC_RANKING) {
                 MostrarRanking();
-                background = LoadTexture("assets/menu/menuaed.png");
+                background = LoadTexture("assets/menu/menu.png");
+                if (background.id == 0) background = LoadTexture("assets/menu/menuaed.png");
             }
             else if (opcaoSelecionada == OPC_INSTRUCOES) {
                 MostrarInstrucoes(); // abre tela de instruções
-                background = LoadTexture("assets/menu/menuaed.png"); // recarrega ao voltar
+                background = LoadTexture("assets/menu/menu.png"); // recarrega ao voltar
+                if (background.id == 0) background = LoadTexture("assets/menu/menuaed.png");
             }
-            else if (opcaoSelecionada == OPC_SAIR) {
-                UnloadTexture(background);
-                return false; // encerra o jogo
-            }
+            // Removido: ação de SAIR
         }
     }
 
