@@ -133,7 +133,7 @@ void UpdatePlayer(Player *p, Rectangle ground, int keyLeft, int keyRight, int ke
 
     // Pulo
     if (IsKeyPressed(keyJump) && !p->isJumping) {
-        p->velocity.y = -15;
+        p->velocity.y = -12;
         p->isJumping = true;
     }
 

@@ -88,6 +88,8 @@ bool MostrarMapaFases(void) {
     int faseSelecionada = 1;
     int faseConcluida = 0;
     bool confirmExit = false;
+    // Botão de desbloqueio (debug)
+    Rectangle btnUnlock = (Rectangle){ screenWidth - 300.0f, 20.0f, 280.0f, 40.0f };
 
     // 🟡 EVITA que o ENTER do menu entre direto na Fase 1
     while (IsKeyDown(KEY_ENTER)) {
@@ -115,6 +117,21 @@ bool MostrarMapaFases(void) {
         if (!confirmExit && IsKeyPressed(KEY_LEFT)) {
             faseSelecionada--;
             if (faseSelecionada < 1) faseSelecionada = 5;
+        }
+
+        // --- Botão: Desbloquear todas as fases (clique ou tecla U) ---
+        if (!confirmExit) {
+            Vector2 mp = GetMousePosition();
+            bool hover = CheckCollisionPointRec(mp, btnUnlock);
+            if ((hover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) || IsKeyPressed(KEY_U)) {
+                // Marca todas como desbloqueadas e ajusta progresso em memória
+                f1->desbloqueada = true;
+                f2->desbloqueada = true;
+                f3->desbloqueada = true;
+                f4->desbloqueada = true;
+                f5->desbloqueada = true;
+                for (int i = 1; i <= 5; ++i) gProgressMask |= (1u << i);
+            }
         }
 
         // --- Entrar na fase selecionada (somente ao apertar ENTER) ---
@@ -183,6 +200,12 @@ bool MostrarMapaFases(void) {
         DrawText("ESC para voltar ao menu", 780, 130, 20, GRAY);
         DrawText("T para Fase Teste (dev)", 780, 160, 20, (Color){180,180,220,255});
         DrawText("A fase amarela está selecionada", 20, screenHeight - 60, 20, GRAY);
+        // Botão desenhado
+        bool hover = CheckCollisionPointRec(GetMousePosition(), btnUnlock);
+        Color cBtn = hover ? (Color){50,170,60,255} : (Color){40,140,50,255};
+        DrawRectangleRec(btnUnlock, cBtn);
+        DrawRectangleLinesEx(btnUnlock, 2, BLACK);
+        DrawText("DESBLOQUEAR TODAS (U)", btnUnlock.x + 12, btnUnlock.y + 10, 20, WHITE);
 
         if (confirmExit) {
             DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0,0,0,180});

@@ -8,7 +8,8 @@ typedef struct Player Player; // forward decl
 typedef enum {
     LAKE_WATER = 0,
     LAKE_FIRE,
-    LAKE_EARTH
+    LAKE_EARTH,
+    LAKE_POISON
 } LakeType;
 
 typedef struct Lake {
