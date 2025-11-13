@@ -240,6 +240,37 @@ static void ResolvePlayerVsCoOpBox(Player* pl, const CoOpBox* box, float deltaX)
     }
 }
 
+static void ResolvePlayerVsRect(Player* pl, Rectangle bloco) {
+    if (bloco.width <= 0 || bloco.height <= 0) return;
+    if (!CheckCollisionRecs(pl->rect, bloco)) return;
+
+    float dx = (pl->rect.x + pl->rect.width * 0.5f) - (bloco.x + bloco.width * 0.5f);
+    float dy = (pl->rect.y + pl->rect.height * 0.5f) - (bloco.y + bloco.height * 0.5f);
+    float overlapX = (pl->rect.width * 0.5f + bloco.width * 0.5f) - fabsf(dx);
+    float overlapY = (pl->rect.height * 0.5f + bloco.height * 0.5f) - fabsf(dy);
+
+    if (overlapX < overlapY) {
+        Rectangle teste = pl->rect;
+        teste.y -= STEP_HEIGHT;
+        if (!(dy > 0 && pl->velocity.y > 0) && !CheckCollisionRecs(teste, bloco)) {
+            pl->rect.y -= STEP_HEIGHT;
+            return;
+        }
+        if (dx > 0) pl->rect.x += overlapX;
+        else        pl->rect.x -= overlapX;
+        pl->velocity.x = 0;
+    } else {
+        if (dy > 0 && pl->velocity.y < 0) {
+            pl->rect.y += overlapY;
+            pl->velocity.y = 0;
+        } else if (dy < 0 && pl->velocity.y >= 0) {
+            pl->rect.y -= overlapY;
+            pl->velocity.y = 0;
+            pl->isJumping = false;
+        }
+    }
+}
+
 static void ResolveCoOpBoxVsWorld(CoOpBox* box, const Colisao* col, int colCount) {
     for (int i = 0; i < colCount; ++i) {
         Rectangle bloco = col[i].rect;
@@ -507,15 +538,8 @@ bool Fase2(void) {
         }
         for (int p=0;p<3;p++) {
             Player* pl=P[p];
-            for (int i=0;i<nCol;i++) {
-                Rectangle b = col[i].rect; if (!CheckCollisionRecs(pl->rect,b)) continue;
-                float dx=(pl->rect.x+pl->rect.width*0.5f)-(b.x+b.width*0.5f);
-                float dy=(pl->rect.y+pl->rect.height*0.5f)-(b.y+b.height*0.5f);
-                float ox=(pl->rect.width*0.5f+b.width*0.5f)-fabsf(dx);
-                float oy=(pl->rect.height*0.5f+b.height*0.5f)-fabsf(dy);
-                if (ox<oy) { if (!(dy>0 && pl->velocity.y>0)) { Rectangle t=pl->rect; t.y-=STEP_HEIGHT; if (!CheckCollisionRecs(t,b)) { pl->rect.y-=STEP_HEIGHT; continue; } } if (dx>0) pl->rect.x+=ox; else pl->rect.x-=ox; pl->velocity.x=0; }
-                else { if (dy>0 && pl->velocity.y<0) { pl->rect.y+=oy; pl->velocity.y=0; } else if (dy<0 && pl->velocity.y>=0) { pl->rect.y-=oy; pl->velocity.y=0; pl->isJumping=false; } }
-            }
+            for (int i=0;i<nCol;i++) ResolvePlayerVsRect(pl, col[i].rect);
+            if (barraM.rect.width > 0 && barraM.rect.height > 0) ResolvePlayerVsRect(pl, barraM.rect);
         }
 
         for (int p=0;p<3;p++) { Player* pl=P[p]; if (elev.rect.width>0) HandlePlatformTop(pl, elev.rect, elevDY); if (barraM.rect.width>0) HandlePlatformTop(pl, barraM.rect, barraDY); }
