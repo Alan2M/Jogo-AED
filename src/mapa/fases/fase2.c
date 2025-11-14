@@ -18,6 +18,8 @@
 #define MAX_FANS 64
 #define MAX_COOP_BOXES 4
 #define STEP_HEIGHT  14.0f
+#define MAX_BUTTONS 8
+#define BUTTON_NAME_LEN 64
 
 typedef struct { Rectangle rect; } Colisao;
 
@@ -36,6 +38,20 @@ typedef struct {
     Rectangle rect;
     float velX;
 } CoOpBox;
+
+typedef struct ButtonSpriteSet {
+    Texture2D blue;
+    Texture2D red;
+    Texture2D white;
+    Texture2D brown;
+} ButtonSpriteSet;
+
+typedef struct PhaseButton {
+    Button button;
+    char name[BUTTON_NAME_LEN];
+    char nameLower[BUTTON_NAME_LEN];
+    bool pressed;
+} PhaseButton;
 
 // Parser simples de grupos de objetos do Tiled (TMX)
 static int ParseRectsFromGroup(const char* tmxPath, const char* groupName, Rectangle* out, int cap) {
@@ -153,6 +169,88 @@ static int ParseLakeSegments(const char* tmxPath, LakeSegment* out, int cap) {
 
     UnloadFileText(xml);
     return count;
+}
+
+static int CollectButtonGroupNames(const char* tmxPath, char names[][BUTTON_NAME_LEN], int maxNames) {
+    if (maxNames <= 0) return 0;
+    char* xml = LoadFileText(tmxPath);
+    if (!xml) return 0;
+    int count = 0;
+    const char* search = xml;
+    while (count < maxNames && (search = strstr(search, "<objectgroup")) != NULL) {
+        const char* tagClose = strchr(search, '>');
+        if (!tagClose) break;
+        const char* nameAttr = strstr(search, "name=\"");
+        if (!nameAttr || nameAttr > tagClose) { search = tagClose + 1; continue; }
+        nameAttr += 6;
+        char nameBuf[BUTTON_NAME_LEN];
+        size_t idx = 0;
+        while (nameAttr[idx] && nameAttr[idx] != '"' && idx + 1 < sizeof(nameBuf)) {
+            nameBuf[idx] = nameAttr[idx];
+            idx++;
+        }
+        nameBuf[idx] = '\0';
+        char lower[BUTTON_NAME_LEN];
+        ToLowerCopy(nameBuf, lower, sizeof(lower));
+        if (!strstr(lower, "bota")) { search = tagClose + 1; continue; }
+        bool exists = false;
+        for (int i = 0; i < count; ++i) {
+            if (strcmp(names[i], nameBuf) == 0) { exists = true; break; }
+        }
+        if (!exists) {
+            strncpy(names[count], nameBuf, BUTTON_NAME_LEN - 1);
+            names[count][BUTTON_NAME_LEN - 1] = '\0';
+            count++;
+        }
+        search = tagClose + 1;
+    }
+    UnloadFileText(xml);
+    return count;
+}
+
+static void DetermineButtonColors(const char* nameLower, Color* up, Color* down) {
+    if (strstr(nameLower, "azul")) {
+        *up = (Color){70, 120, 240, 220};
+        *down = (Color){40, 85, 200, 255};
+        return;
+    }
+    if (strstr(nameLower, "verm")) {
+        *up = (Color){210, 70, 70, 220};
+        *down = (Color){150, 40, 40, 255};
+        return;
+    }
+    if (strstr(nameLower, "branc")) {
+        *up = (Color){230, 230, 230, 220};
+        *down = (Color){190, 190, 210, 255};
+        return;
+    }
+    if (strstr(nameLower, "marr") || strstr(nameLower, "terra")) {
+        *up = (Color){180, 120, 70, 220};
+        *down = (Color){140, 90, 50, 255};
+        return;
+    }
+    *up = (Color){200, 200, 40, 200};
+    *down = (Color){200, 140, 20, 255};
+}
+
+static const Texture2D* PickButtonSprite(const char* nameLower, const ButtonSpriteSet* sprites) {
+    if (strstr(nameLower, "branc") && sprites->white.id != 0) return &sprites->white;
+    if (strstr(nameLower, "azul") && sprites->blue.id != 0) return &sprites->blue;
+    if (strstr(nameLower, "verm") && sprites->red.id != 0) return &sprites->red;
+    if ((strstr(nameLower, "marr") || strstr(nameLower, "terra")) && sprites->brown.id != 0) return &sprites->brown;
+    if (sprites->blue.id != 0) return &sprites->blue;
+    if (sprites->red.id != 0) return &sprites->red;
+    if (sprites->white.id != 0) return &sprites->white;
+    if (sprites->brown.id != 0) return &sprites->brown;
+    return NULL;
+}
+
+static bool AnyButtonPressedWithToken(const PhaseButton* buttons, int count, const char* tokenLower) {
+    if (!tokenLower || !tokenLower[0]) return false;
+    for (int i = 0; i < count; ++i) {
+        if (buttons[i].pressed && strstr(buttons[i].nameLower, tokenLower)) return true;
+    }
+    return false;
 }
 
 static Texture2D LoadTextureIfExists(const char* path) {
@@ -398,15 +496,34 @@ bool Fase2(void) {
     Player earthboy, fireboy, watergirl; InitEarthboy(&earthboy); InitFireboy(&fireboy); InitWatergirl(&watergirl);
     earthboy.rect = (Rectangle){spawnE.x, spawnE.y, 45, 50}; fireboy.rect = (Rectangle){spawnF.x, spawnF.y, 45, 50}; watergirl.rect = (Rectangle){spawnW.x, spawnW.y, 45, 50};
 
-    // Botões
-    Button b1={0}, b2={0}, b3={0}; {
-        Rectangle br[2]; int c;
-        c = ParseRectsFromGroup(tmx, "Botao1_Barra1_Morvel", br, 2); if (c==0) c = ParseRectsFromGroup(tmx, "Botao1_Barra1_Movel", br, 2);
-        if (c>0) ButtonInit(&b1, br[0].x, br[0].y, br[0].width, br[0].height, (Color){200,200,40,200}, (Color){200,140,20,255});
-        c = ParseRectsFromGroup(tmx, "Botao2_Barra1_Movel", br, 2); if (c==0) c = ParseRectsFromGroup(tmx, "Botao2_Barra1_Morvel", br, 2);
-        if (c>0) ButtonInit(&b2, br[0].x, br[0].y, br[0].width, br[0].height, (Color){40,200,200,200}, (Color){20,140,200,255});
-        c = ParseRectsFromGroup(tmx, "Botao3_Barra1_Movel_e_ventilador2", br, 2); if (c==0) c = ParseRectsFromGroup(tmx, "Botao3_Barra1_Morvel_e_ventilador2", br, 2);
-        if (c>0) ButtonInit(&b3, br[0].x, br[0].y, br[0].width, br[0].height, (Color){200,40,200,200}, (Color){140,20,200,255});
+    // Botões com sprites
+    ButtonSpriteSet buttonSprites = {0};
+    buttonSprites.blue  = LoadTexture("assets/map/buttons/pixil-layer-bluebutton.png");
+    buttonSprites.red   = LoadTexture("assets/map/buttons/pixil-layer-redbutton.png");
+    buttonSprites.white = LoadTexture("assets/map/buttons/pixil-layer-whitebutton.png");
+    buttonSprites.brown = LoadTexture("assets/map/buttons/pixil-layer-brownbutton.png");
+    PhaseButton buttons[MAX_BUTTONS] = {0};
+    int buttonCount = 0;
+    char buttonNames[MAX_BUTTONS][BUTTON_NAME_LEN] = {{0}};
+    int buttonGroups = CollectButtonGroupNames(tmx, buttonNames, MAX_BUTTONS);
+    Rectangle btnRect[4];
+    for (int g = 0; g < buttonGroups && buttonCount < MAX_BUTTONS; ++g) {
+        int rects = ParseRectsFromGroup(tmx, buttonNames[g], btnRect, (int)(sizeof(btnRect)/sizeof(btnRect[0])));
+        if (rects <= 0) continue;
+        char lowerName[BUTTON_NAME_LEN];
+        ToLowerCopy(buttonNames[g], lowerName, sizeof(lowerName));
+        Color colorUp, colorDown;
+        DetermineButtonColors(lowerName, &colorUp, &colorDown);
+        const Texture2D* sprite = PickButtonSprite(lowerName, &buttonSprites);
+        for (int r = 0; r < rects && buttonCount < MAX_BUTTONS; ++r) {
+            ButtonInit(&buttons[buttonCount].button, btnRect[r].x, btnRect[r].y, btnRect[r].width, btnRect[r].height, colorUp, colorDown);
+            if (sprite) ButtonSetSprites(&buttons[buttonCount].button, sprite, NULL);
+            strncpy(buttons[buttonCount].name, buttonNames[g], BUTTON_NAME_LEN - 1);
+            buttons[buttonCount].name[BUTTON_NAME_LEN - 1] = '\0';
+            ToLowerCopy(buttonNames[g], buttons[buttonCount].nameLower, BUTTON_NAME_LEN);
+            buttons[buttonCount].pressed = false;
+            buttonCount++;
+        }
     }
 
     // Plataformas
@@ -483,9 +600,13 @@ bool Fase2(void) {
             }
         }
 
-        bool p1 = ButtonUpdate(&b1, &earthboy, &fireboy, &watergirl);
-        bool p2 = ButtonUpdate(&b2, &earthboy, &fireboy, &watergirl);
-        bool p3 = ButtonUpdate(&b3, &earthboy, &fireboy, &watergirl);
+        for (int i = 0; i < buttonCount; ++i) {
+            buttons[i].pressed = ButtonUpdate(&buttons[i].button, &earthboy, &fireboy, &watergirl);
+        }
+
+        bool p1 = AnyButtonPressedWithToken(buttons, buttonCount, "botao1");
+        bool p2 = AnyButtonPressedWithToken(buttons, buttonCount, "botao2");
+        bool p3 = AnyButtonPressedWithToken(buttons, buttonCount, "botao3");
 
         float elevPrevY = elev.rect.y, barraPrevY = barraM.rect.y;
         if (elev.area.height>0 && elev.rect.height>0) {
@@ -572,6 +693,9 @@ bool Fase2(void) {
         // Desenho
         BeginDrawing(); ClearBackground(BLACK); BeginMode2D(cam);
         DrawTexture(mapTex, 0, 0, WHITE);
+        for (int i = 0; i < buttonCount; ++i) {
+            ButtonDraw(&buttons[i].button);
+        }
 
         // Quem está dentro do próprio lago (para desenhar por trás)
         bool insideOwn[3] = { false, false, false };
@@ -628,7 +752,6 @@ bool Fase2(void) {
         // 5) chegada
         GoalDraw(&goal);
         // 6) debug
-        ButtonDraw(&b1); ButtonDraw(&b2); ButtonDraw(&b3);
         if (debug) {
             for (int i=0;i<nCol;i++) DrawRectangleLinesEx(col[i].rect,1,Fade(GREEN,0.5f));
             DrawRectangleLinesEx(elev.area,1,Fade(YELLOW,0.5f)); DrawRectangleLinesEx(barraM.area,1,Fade(ORANGE,0.5f));
@@ -646,6 +769,10 @@ bool Fase2(void) {
     if (!coopBoxShared && coopBoxTex.id) UnloadTexture(coopBoxTex);
     if (fanOffTex.id) UnloadTexture(fanOffTex);
     for (int i=0;i<fanOnCount;i++) if (fanOnFrames[i].id) UnloadTexture(fanOnFrames[i]);
+    if (buttonSprites.blue.id != 0) UnloadTexture(buttonSprites.blue);
+    if (buttonSprites.red.id != 0) UnloadTexture(buttonSprites.red);
+    if (buttonSprites.white.id != 0) UnloadTexture(buttonSprites.white);
+    if (buttonSprites.brown.id != 0) UnloadTexture(buttonSprites.brown);
     // unload lake frames
     UnloadLakeSet(&animAgua); UnloadLakeSet(&animFogo); UnloadLakeSet(&animTerra); UnloadLakeSet(&animAcido);
     UnloadPlayer(&earthboy); UnloadPlayer(&fireboy); UnloadPlayer(&watergirl);
