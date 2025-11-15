@@ -33,39 +33,32 @@ void Conectar(NoFase* pai, NoFase* esq, NoFase* dir) {
     pai->direita = dir;
 }
 
+static NoFase* EncontrarFasePorId(NoFase* raiz, int id) {
+    if (!raiz) return NULL;
+    if (raiz->id == id) return raiz;
+    NoFase* encontrada = EncontrarFasePorId(raiz->esquerda, id);
+    if (encontrada) return encontrada;
+    return EncontrarFasePorId(raiz->direita, id);
+}
+
 void AtualizarDesbloqueios(NoFase* raiz, int faseConcluida) {
     if (faseConcluida == 1) {
         if (raiz->esquerda) raiz->esquerda->desbloqueada = true;
         if (raiz->direita) raiz->direita->desbloqueada = true;
     }
-    if (faseConcluida == 2 && raiz->esquerda)
+    if (faseConcluida == 2 && raiz->esquerda) {
         if (raiz->esquerda->esquerda) raiz->esquerda->esquerda->desbloqueada = true;
-    if (faseConcluida == 3 && raiz->direita)
-        if (raiz->direita->direita) raiz->direita->direita->desbloqueada = true;
-}
-
-// --- Desenhar fase ---
-void DesenharFase(NoFase* fase, Vector2 pos, int selecionada, float brilho) {
-    Color corBase;
-
-    if (!fase->desbloqueada) corBase = DARKGRAY;
-    else if (fase->id == selecionada)
-        corBase = (Color){ (int)(255 * brilho), (int)(255 * brilho), 0, 255 };
-    else
-        corBase = GREEN;
-
-    DrawCircleV(pos, 50, corBase);
-    DrawCircleLines(pos.x, pos.y, 50, BLACK);
-
-    char texto[10];
-    sprintf(texto, "%d", fase->id);
-    DrawText(texto, pos.x - 10, pos.y - 15, 40, BLACK);
+        if (raiz->esquerda->direita) raiz->esquerda->direita->desbloqueada = true;
+    }
 }
 
 // --- Mapa de fases ---
 bool MostrarMapaFases(void) {
     const int screenWidth = 1920;
     const int screenHeight = 1080;
+    Texture2D texMapaInicial = LoadTexture("assets/map/mapafases/1.png");
+    Texture2D texMapaParcial = LoadTexture("assets/map/mapafases/123.png");
+    Texture2D texMapaCompleto = LoadTexture("assets/map/mapafases/12345.png");
 
     // Cria árvore binária
     NoFase* f1 = CriarFase(1, true);
@@ -75,8 +68,7 @@ bool MostrarMapaFases(void) {
     NoFase* f5 = CriarFase(5, false);
 
     Conectar(f1, f2, f3);
-    Conectar(f2, f4, NULL);
-    Conectar(f3, NULL, f5);
+    Conectar(f2, f5, f4);
 
     // Aplica progresso em memória para reabrir fases já concluídas nesta sessão
     for (int i = 1; i <= 5; i++) {
@@ -88,6 +80,7 @@ bool MostrarMapaFases(void) {
     int faseSelecionada = 1;
     int faseConcluida = 0;
     bool confirmExit = false;
+    bool sairDoMapa = false;
     // Botão de desbloqueio (debug)
     Rectangle btnUnlock = (Rectangle){ screenWidth - 300.0f, 20.0f, 280.0f, 40.0f };
 
@@ -107,16 +100,18 @@ bool MostrarMapaFases(void) {
         EndDrawing();
     }
 
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose() && !sairDoMapa) {
 
         // --- Navegação entre fases ---
         if (!confirmExit && IsKeyPressed(KEY_RIGHT)) {
-            faseSelecionada++;
-            if (faseSelecionada > 5) faseSelecionada = 1;
+            NoFase* atual = EncontrarFasePorId(f1, faseSelecionada);
+            if (atual && atual->direita) faseSelecionada = atual->direita->id;
+            else faseSelecionada = 1;
         }
         if (!confirmExit && IsKeyPressed(KEY_LEFT)) {
-            faseSelecionada--;
-            if (faseSelecionada < 1) faseSelecionada = 5;
+            NoFase* atual = EncontrarFasePorId(f1, faseSelecionada);
+            if (atual && atual->esquerda) faseSelecionada = atual->esquerda->id;
+            else faseSelecionada = 1;
         }
 
         // --- Botão: Desbloquear todas as fases (clique ou tecla U) ---
@@ -136,14 +131,7 @@ bool MostrarMapaFases(void) {
 
         // --- Entrar na fase selecionada (somente ao apertar ENTER) ---
         if (!confirmExit && IsKeyPressed(KEY_ENTER)) {
-            NoFase* atual = NULL;
-            switch (faseSelecionada) {
-                case 1: atual = f1; break;
-                case 2: atual = f2; break;
-                case 3: atual = f3; break;
-                case 4: atual = f4; break;
-                case 5: atual = f5; break;
-            }
+            NoFase* atual = EncontrarFasePorId(f1, faseSelecionada);
 
             if (atual && atual->desbloqueada) {
                 bool concluida = false;
@@ -163,7 +151,11 @@ bool MostrarMapaFases(void) {
                 }
 
                 // Se a fase solicitou retorno ao menu, sai do mapa
-                if (Game_ShouldReturnToMenu()) { Game_ClearReturnToMenu(); EndDrawing(); return false; }
+                if (Game_ShouldReturnToMenu()) {
+                    Game_ClearReturnToMenu();
+                    sairDoMapa = true;
+                    break;
+                }
             }
         }
 
@@ -176,30 +168,48 @@ bool MostrarMapaFases(void) {
         BeginDrawing();
         ClearBackground((Color){35, 25, 10, 255});
 
-        float brilho = (sinf(GetTime() * 2) + 1.0f) / 2.0f;
+        Texture2D* mapaAtual = &texMapaInicial;
+        if (f4->desbloqueada) {
+            mapaAtual = &texMapaCompleto;
+        } else if (f2->desbloqueada || f3->desbloqueada) {
+            mapaAtual = &texMapaParcial;
+        }
 
-        Vector2 posF1 = {screenWidth / 2, 200};
-        Vector2 posF2 = {screenWidth / 2 - 350, 450};
-        Vector2 posF3 = {screenWidth / 2 + 350, 450};
-        Vector2 posF4 = {screenWidth / 2 - 500, 700};
-        Vector2 posF5 = {screenWidth / 2 + 500, 700};
-
-        DrawLineBezier(posF1, posF2, 6, GOLD);
-        DrawLineBezier(posF1, posF3, 6, GOLD);
-        DrawLineBezier(posF2, posF4, 6, GOLD);
-        DrawLineBezier(posF3, posF5, 6, GOLD);
-
-        DesenharFase(f1, posF1, faseSelecionada, brilho);
-        DesenharFase(f2, posF2, faseSelecionada, brilho);
-        DesenharFase(f3, posF3, faseSelecionada, brilho);
-        DesenharFase(f4, posF4, faseSelecionada, brilho);
-        DesenharFase(f5, posF5, faseSelecionada, brilho);
+        Rectangle srcMapa = {0, 0, (float)mapaAtual->width, (float)mapaAtual->height};
+        Rectangle dstMapa = {0, 0, (float)screenWidth, (float)screenHeight};
+        DrawTexturePro(*mapaAtual, srcMapa, dstMapa, (Vector2){0, 0}, 0.0f, WHITE);
 
         DrawText("MAPA DE FASES", 780, 40, 40, YELLOW);
-        DrawText("← → para selecionar | ENTER para jogar", 600, 100, 20, RAYWHITE);
+        DrawText("Setas <- -> para selecionar | ENTER para jogar", 600, 100, 20, RAYWHITE);
         DrawText("ESC para voltar ao menu", 780, 130, 20, GRAY);
         DrawText("T para Fase Teste (dev)", 780, 160, 20, (Color){180,180,220,255});
-        DrawText("A fase amarela está selecionada", 20, screenHeight - 60, 20, GRAY);
+
+        NoFase* faseAtual = EncontrarFasePorId(f1, faseSelecionada);
+        bool faseDisponivel = faseAtual && faseAtual->desbloqueada;
+
+        Vector2 posicoes[6] = {
+            {0, 0},
+            {985.0f, 825.0f},   // Fase 1
+            {725.0f, 570.0f},   // Fase 2
+            {1223.0f, 524.0f},  // Fase 3
+            {995.0f, 190.0f},   // Fase 4
+            {455.0f, 225.0f}    // Fase 5
+        };
+        Vector2 posIndicador = posicoes[faseSelecionada];
+        Color corIndicador = faseDisponivel ? YELLOW : (Color){120, 120, 120, 220};
+
+        DrawCircleLines(posIndicador.x, posIndicador.y, 70.0f, corIndicador);
+        DrawCircleLines(posIndicador.x, posIndicador.y, 76.0f, (Color){0, 0, 0, 120});
+
+        const char* msgStatus = faseDisponivel ? "ENTER para iniciar" : "Conclua a fase anterior para liberar";
+        Color corStatus = faseDisponivel ? GREEN : GRAY;
+        DrawText(msgStatus, 60, screenHeight - 80, 22, corStatus);
+        Vector2 cursor = GetMousePosition();
+        char coordTexto[64];
+        snprintf(coordTexto, sizeof(coordTexto), "Mouse: %.0f, %.0f", cursor.x, cursor.y);
+        DrawText(coordTexto, 60, screenHeight - 120, 20, WHITE);
+
+
         // Botão desenhado
         bool hover = CheckCollisionPointRec(GetMousePosition(), btnUnlock);
         Color cBtn = hover ? (Color){50,170,60,255} : (Color){40,140,50,255};
@@ -211,11 +221,13 @@ bool MostrarMapaFases(void) {
             DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0,0,0,180});
             DrawText("Voltar ao menu?", 820, 480, 30, RAYWHITE);
             DrawText("Y = Sim   N = Nao", 835, 520, 20, LIGHTGRAY);
-            if (IsKeyPressed(KEY_Y)) { EndDrawing(); return false; }
+            if (IsKeyPressed(KEY_Y)) { sairDoMapa = true; }
             if (IsKeyPressed(KEY_N)) { confirmExit = false; }
         }
 
         EndDrawing();
+
+        if (sairDoMapa) break;
 
         // Atalho dev: abrir Fase Teste (não altera desbloqueios)
         if (!confirmExit && IsKeyPressed(KEY_T)) {
@@ -223,9 +235,13 @@ bool MostrarMapaFases(void) {
         }
     }
 
+    UnloadTexture(texMapaInicial);
+    UnloadTexture(texMapaParcial);
+    UnloadTexture(texMapaCompleto);
     return false;
 }
 
 void ResetarProgressoFases(void) {
     gProgressMask = 0;
 }
+
