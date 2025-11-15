@@ -33,12 +33,84 @@ void Conectar(NoFase* pai, NoFase* esq, NoFase* dir) {
     pai->direita = dir;
 }
 
-static NoFase* EncontrarFasePorId(NoFase* raiz, int id) {
-    if (!raiz) return NULL;
-    if (raiz->id == id) return raiz;
-    NoFase* encontrada = EncontrarFasePorId(raiz->esquerda, id);
-    if (encontrada) return encontrada;
-    return EncontrarFasePorId(raiz->direita, id);
+void AtualizarDesbloqueios(NoFase* raiz, int faseConcluida);
+
+typedef struct {
+    Texture2D inicial;
+    Texture2D parcial;
+    Texture2D completo;
+} MapaTexturas;
+
+static void CarregarMapaTexturas(MapaTexturas* mapas) {
+    mapas->inicial = LoadTexture("assets/map/mapafases/1.png");
+    mapas->parcial = LoadTexture("assets/map/mapafases/123.png");
+    mapas->completo = LoadTexture("assets/map/mapafases/12345.png");
+}
+
+static void DescarregarMapaTexturas(MapaTexturas* mapas) {
+    if (mapas->inicial.id > 0) UnloadTexture(mapas->inicial);
+    if (mapas->parcial.id > 0) UnloadTexture(mapas->parcial);
+    if (mapas->completo.id > 0) UnloadTexture(mapas->completo);
+}
+
+static Texture2D* SelecionarMapaAtual(MapaTexturas* mapas, NoFase* fase2, NoFase* fase3, NoFase* fase4) {
+    Texture2D* selecionada = &mapas->inicial;
+
+    if (fase4 && fase4->desbloqueada) {
+        selecionada = &mapas->completo;
+    } else {
+        bool ladoEsquerdoDesbloqueado = fase2 && fase2->desbloqueada;
+        bool ladoDireitoDesbloqueado = fase3 && fase3->desbloqueada;
+        if (ladoEsquerdoDesbloqueado || ladoDireitoDesbloqueado) {
+            selecionada = &mapas->parcial;
+        }
+    }
+
+    return selecionada;
+}
+
+static NoFase* CriarArvoreFases(NoFase** fases) {
+    for (int i = 0; i < 6; ++i) fases[i] = NULL;
+
+    fases[1] = CriarFase(1, true);
+    fases[2] = CriarFase(2, false);
+    fases[3] = CriarFase(3, false);
+    fases[4] = CriarFase(4, false);
+    fases[5] = CriarFase(5, false);
+
+    Conectar(fases[1], fases[2], fases[3]);
+    Conectar(fases[2], fases[5], fases[4]);
+
+    return fases[1];
+}
+
+static void LiberarFases(NoFase** fases, int total) {
+    for (int i = 1; i < total; ++i) {
+        if (fases[i]) free(fases[i]);
+    }
+}
+
+static int NavegarPara(NoFase** fases, int faseAtual, bool direita) {
+    NoFase* atual = fases[faseAtual];
+    if (!atual) return 1;
+
+    NoFase* destino = NULL;
+    if (direita) {
+        destino = atual->direita;
+    } else {
+        destino = atual->esquerda;
+    }
+    if (destino) return destino->id;
+    return 1;
+}
+
+static void AplicarProgressoSessao(NoFase* raiz) {
+    for (int i = 1; i <= 5; ++i) {
+        unsigned int flag = (1u << i);
+        if ((gProgressMask & flag) != 0) {
+            AtualizarDesbloqueios(raiz, i);
+        }
+    }
 }
 
 void AtualizarDesbloqueios(NoFase* raiz, int faseConcluida) {
@@ -56,26 +128,14 @@ void AtualizarDesbloqueios(NoFase* raiz, int faseConcluida) {
 bool MostrarMapaFases(void) {
     const int screenWidth = 1920;
     const int screenHeight = 1080;
-    Texture2D texMapaInicial = LoadTexture("assets/map/mapafases/1.png");
-    Texture2D texMapaParcial = LoadTexture("assets/map/mapafases/123.png");
-    Texture2D texMapaCompleto = LoadTexture("assets/map/mapafases/12345.png");
+    MapaTexturas mapas;
+    CarregarMapaTexturas(&mapas);
 
-    // Cria árvore binária
-    NoFase* f1 = CriarFase(1, true);
-    NoFase* f2 = CriarFase(2, false);
-    NoFase* f3 = CriarFase(3, false);
-    NoFase* f4 = CriarFase(4, false);
-    NoFase* f5 = CriarFase(5, false);
-
-    Conectar(f1, f2, f3);
-    Conectar(f2, f5, f4);
+    NoFase* fases[6] = {0};
+    NoFase* raiz = CriarArvoreFases(fases);
 
     // Aplica progresso em memória para reabrir fases já concluídas nesta sessão
-    for (int i = 1; i <= 5; i++) {
-        if (gProgressMask & (1u << i)) {
-            AtualizarDesbloqueios(f1, i);
-        }
-    }
+    AplicarProgressoSessao(raiz);
 
     int faseSelecionada = 1;
     int faseConcluida = 0;
@@ -104,14 +164,10 @@ bool MostrarMapaFases(void) {
 
         // --- Navegação entre fases ---
         if (!confirmExit && IsKeyPressed(KEY_RIGHT)) {
-            NoFase* atual = EncontrarFasePorId(f1, faseSelecionada);
-            if (atual && atual->direita) faseSelecionada = atual->direita->id;
-            else faseSelecionada = 1;
+            faseSelecionada = NavegarPara(fases, faseSelecionada, true);
         }
         if (!confirmExit && IsKeyPressed(KEY_LEFT)) {
-            NoFase* atual = EncontrarFasePorId(f1, faseSelecionada);
-            if (atual && atual->esquerda) faseSelecionada = atual->esquerda->id;
-            else faseSelecionada = 1;
+            faseSelecionada = NavegarPara(fases, faseSelecionada, false);
         }
 
         // --- Botão: Desbloquear todas as fases (clique ou tecla U) ---
@@ -120,18 +176,16 @@ bool MostrarMapaFases(void) {
             bool hover = CheckCollisionPointRec(mp, btnUnlock);
             if ((hover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) || IsKeyPressed(KEY_U)) {
                 // Marca todas como desbloqueadas e ajusta progresso em memória
-                f1->desbloqueada = true;
-                f2->desbloqueada = true;
-                f3->desbloqueada = true;
-                f4->desbloqueada = true;
-                f5->desbloqueada = true;
-                for (int i = 1; i <= 5; ++i) gProgressMask |= (1u << i);
+                for (int i = 1; i <= 5; ++i) {
+                    if (fases[i]) fases[i]->desbloqueada = true;
+                    gProgressMask |= (1u << i);
+                }
             }
         }
 
         // --- Entrar na fase selecionada (somente ao apertar ENTER) ---
         if (!confirmExit && IsKeyPressed(KEY_ENTER)) {
-            NoFase* atual = EncontrarFasePorId(f1, faseSelecionada);
+            NoFase* atual = fases[faseSelecionada];
 
             if (atual && atual->desbloqueada) {
                 bool concluida = false;
@@ -147,7 +201,7 @@ bool MostrarMapaFases(void) {
                 if (concluida) {
                     faseConcluida = atual->id;
                     gProgressMask |= (1u << faseConcluida);
-                    AtualizarDesbloqueios(f1, faseConcluida);
+                    AtualizarDesbloqueios(raiz, faseConcluida);
                 }
 
                 // Se a fase solicitou retorno ao menu, sai do mapa
@@ -168,12 +222,7 @@ bool MostrarMapaFases(void) {
         BeginDrawing();
         ClearBackground((Color){35, 25, 10, 255});
 
-        Texture2D* mapaAtual = &texMapaInicial;
-        if (f4->desbloqueada) {
-            mapaAtual = &texMapaCompleto;
-        } else if (f2->desbloqueada || f3->desbloqueada) {
-            mapaAtual = &texMapaParcial;
-        }
+        Texture2D* mapaAtual = SelecionarMapaAtual(&mapas, fases[2], fases[3], fases[4]);
 
         Rectangle srcMapa = {0, 0, (float)mapaAtual->width, (float)mapaAtual->height};
         Rectangle dstMapa = {0, 0, (float)screenWidth, (float)screenHeight};
@@ -184,7 +233,7 @@ bool MostrarMapaFases(void) {
         DrawText("ESC para voltar ao menu", 780, 130, 20, GRAY);
         DrawText("T para Fase Teste (dev)", 780, 160, 20, (Color){180,180,220,255});
 
-        NoFase* faseAtual = EncontrarFasePorId(f1, faseSelecionada);
+        NoFase* faseAtual = fases[faseSelecionada];
         bool faseDisponivel = faseAtual && faseAtual->desbloqueada;
 
         Vector2 posicoes[6] = {
@@ -196,13 +245,25 @@ bool MostrarMapaFases(void) {
             {455.0f, 225.0f}    // Fase 5
         };
         Vector2 posIndicador = posicoes[faseSelecionada];
-        Color corIndicador = faseDisponivel ? YELLOW : (Color){120, 120, 120, 220};
+        Color corIndicador;
+        if (faseDisponivel) {
+            corIndicador = YELLOW;
+        } else {
+            corIndicador = (Color){120, 120, 120, 220};
+        }
 
         DrawCircleLines(posIndicador.x, posIndicador.y, 70.0f, corIndicador);
         DrawCircleLines(posIndicador.x, posIndicador.y, 76.0f, (Color){0, 0, 0, 120});
 
-        const char* msgStatus = faseDisponivel ? "ENTER para iniciar" : "Conclua a fase anterior para liberar";
-        Color corStatus = faseDisponivel ? GREEN : GRAY;
+        const char* msgStatus;
+        Color corStatus;
+        if (faseDisponivel) {
+            msgStatus = "ENTER para iniciar";
+            corStatus = GREEN;
+        } else {
+            msgStatus = "Conclua a fase anterior para liberar";
+            corStatus = GRAY;
+        }
         DrawText(msgStatus, 60, screenHeight - 80, 22, corStatus);
         Vector2 cursor = GetMousePosition();
         char coordTexto[64];
@@ -212,7 +273,12 @@ bool MostrarMapaFases(void) {
 
         // Botão desenhado
         bool hover = CheckCollisionPointRec(GetMousePosition(), btnUnlock);
-        Color cBtn = hover ? (Color){50,170,60,255} : (Color){40,140,50,255};
+        Color cBtn;
+        if (hover) {
+            cBtn = (Color){50,170,60,255};
+        } else {
+            cBtn = (Color){40,140,50,255};
+        }
         DrawRectangleRec(btnUnlock, cBtn);
         DrawRectangleLinesEx(btnUnlock, 2, BLACK);
         DrawText("DESBLOQUEAR TODAS (U)", btnUnlock.x + 12, btnUnlock.y + 10, 20, WHITE);
@@ -235,9 +301,8 @@ bool MostrarMapaFases(void) {
         }
     }
 
-    UnloadTexture(texMapaInicial);
-    UnloadTexture(texMapaParcial);
-    UnloadTexture(texMapaCompleto);
+    DescarregarMapaTexturas(&mapas);
+    LiberarFases(fases, 6);
     return false;
 }
 

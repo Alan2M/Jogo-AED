@@ -5,6 +5,7 @@
 #include "../../game/game.h"
 #include "../../ranking/ranking.h"
 #include "../../objects/fan.h"
+#include "../../interface/pause.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -646,6 +647,12 @@ bool Fase1(void) {
         float dt = GetFrameTime();
         elapsed += dt;
         if (IsKeyPressed(KEY_TAB)) debug = !debug;
+
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            PauseResult pr = ShowPauseMenu();
+            if (pr == PAUSE_TO_MAP) { completed = false; break; }
+            if (pr == PAUSE_TO_MENU) { Game_SetReturnToMenu(true); completed = false; break; }
+        }
 
         // --- Atualiza jogadores ---
         UpdatePlayer(&earthboy, (Rectangle){0, mapTexture.height, mapTexture.width, 100}, KEY_A, KEY_D, KEY_W);
