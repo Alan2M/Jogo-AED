@@ -33,7 +33,7 @@ void Conectar(NoFase* pai, NoFase* esq, NoFase* dir) {
     pai->direita = dir;
 }
 
-void AtualizarDesbloqueios(NoFase* raiz, int faseConcluida);
+void AtualizarDesbloqueios(NoFase** fases, int faseConcluida);
 
 typedef struct {
     Texture2D inicial;
@@ -79,7 +79,7 @@ static NoFase* CriarArvoreFases(NoFase** fases) {
     fases[5] = CriarFase(5, false);
 
     Conectar(fases[1], fases[2], fases[3]);
-    Conectar(fases[2], fases[5], fases[4]);
+    Conectar(fases[2], fases[4], fases[5]);
 
     return fases[1];
 }
@@ -104,23 +104,28 @@ static int NavegarPara(NoFase** fases, int faseAtual, bool direita) {
     return 1;
 }
 
-static void AplicarProgressoSessao(NoFase* raiz) {
+static void AplicarProgressoSessao(NoFase** fases) {
     for (int i = 1; i <= 5; ++i) {
         unsigned int flag = (1u << i);
         if ((gProgressMask & flag) != 0) {
-            AtualizarDesbloqueios(raiz, i);
+            AtualizarDesbloqueios(fases, i);
         }
     }
 }
 
-void AtualizarDesbloqueios(NoFase* raiz, int faseConcluida) {
-    if (faseConcluida == 1) {
-        if (raiz->esquerda) raiz->esquerda->desbloqueada = true;
-        if (raiz->direita) raiz->direita->desbloqueada = true;
-    }
-    if (faseConcluida == 2 && raiz->esquerda) {
-        if (raiz->esquerda->esquerda) raiz->esquerda->esquerda->desbloqueada = true;
-        if (raiz->esquerda->direita) raiz->esquerda->direita->desbloqueada = true;
+void AtualizarDesbloqueios(NoFase** fases, int faseConcluida) {
+    if (!fases) return;
+    switch (faseConcluida) {
+        case 1:
+            if (fases[2]) fases[2]->desbloqueada = true;
+            if (fases[3]) fases[3]->desbloqueada = true;
+            break;
+        case 2:
+            if (fases[4]) fases[4]->desbloqueada = true;
+            if (fases[5]) fases[5]->desbloqueada = true;
+            break;
+        default:
+            break;
     }
 }
 
@@ -135,7 +140,7 @@ bool MostrarMapaFases(void) {
     NoFase* raiz = CriarArvoreFases(fases);
 
     // Aplica progresso em memória para reabrir fases já concluídas nesta sessão
-    AplicarProgressoSessao(raiz);
+    AplicarProgressoSessao(fases);
 
     int faseSelecionada = 1;
     int faseConcluida = 0;
@@ -143,6 +148,7 @@ bool MostrarMapaFases(void) {
     bool sairDoMapa = false;
     // Botão de desbloqueio (debug)
     Rectangle btnUnlock = (Rectangle){ screenWidth - 300.0f, 20.0f, 280.0f, 40.0f };
+    Rectangle btnSkip   = (Rectangle){ 20.0f, screenHeight - 80.0f, 360.0f, 40.0f };
 
     // 🟡 EVITA que o ENTER do menu entre direto na Fase 1
     while (IsKeyDown(KEY_ENTER)) {
@@ -175,10 +181,18 @@ bool MostrarMapaFases(void) {
             Vector2 mp = GetMousePosition();
             bool hover = CheckCollisionPointRec(mp, btnUnlock);
             if ((hover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) || IsKeyPressed(KEY_U)) {
-                // Marca todas como desbloqueadas e ajusta progresso em memória
                 for (int i = 1; i <= 5; ++i) {
                     if (fases[i]) fases[i]->desbloqueada = true;
                     gProgressMask |= (1u << i);
+                }
+            }
+
+            bool skipHover = CheckCollisionPointRec(mp, btnSkip);
+            if ((skipHover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) || IsKeyPressed(KEY_P)) {
+                NoFase* atual = fases[faseSelecionada];
+                if (atual && atual->desbloqueada) {
+                    gProgressMask |= (1u << atual->id);
+                    AtualizarDesbloqueios(fases, atual->id);
                 }
             }
         }
@@ -201,7 +215,7 @@ bool MostrarMapaFases(void) {
                 if (concluida) {
                     faseConcluida = atual->id;
                     gProgressMask |= (1u << faseConcluida);
-                    AtualizarDesbloqueios(raiz, faseConcluida);
+                    AtualizarDesbloqueios(fases, faseConcluida);
                 }
 
                 // Se a fase solicitou retorno ao menu, sai do mapa
@@ -273,15 +287,16 @@ bool MostrarMapaFases(void) {
 
         // Botão desenhado
         bool hover = CheckCollisionPointRec(GetMousePosition(), btnUnlock);
-        Color cBtn;
-        if (hover) {
-            cBtn = (Color){50,170,60,255};
-        } else {
-            cBtn = (Color){40,140,50,255};
-        }
+        Color cBtn = hover ? (Color){50,170,60,255} : (Color){40,140,50,255};
         DrawRectangleRec(btnUnlock, cBtn);
         DrawRectangleLinesEx(btnUnlock, 2, BLACK);
         DrawText("DESBLOQUEAR TODAS (U)", btnUnlock.x + 12, btnUnlock.y + 10, 20, WHITE);
+
+        bool skipHover = CheckCollisionPointRec(GetMousePosition(), btnSkip);
+        Color cSkip = skipHover ? (Color){180,120,40,255} : (Color){140,90,30,255};
+        DrawRectangleRec(btnSkip, cSkip);
+        DrawRectangleLinesEx(btnSkip, 2, BLACK);
+        DrawText("MARCAR FASE COMO CONCLUIDA (P)", btnSkip.x + 12, btnSkip.y + 10, 20, WHITE);
 
         if (confirmExit) {
             DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0,0,0,180});
