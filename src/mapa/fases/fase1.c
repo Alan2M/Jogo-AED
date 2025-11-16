@@ -576,7 +576,8 @@ bool Fase1(void) {
         PlatformInit(&elevador2, rectBuf[0], area, 1.8f);
     }
 
-    Texture2D barraAzulTex = LoadTexture("assets/map/barras/azul.png");
+    Texture2D barraAzulTex = LoadTexture("assets/map/barras/BarraAzulFase1.png");
+    if (barraAzulTex.id == 0) barraAzulTex = LoadTexture("assets/map/barras/azul.png");
     Texture2D barraBrancaTex = LoadTexture("assets/map/barras/branca.png");
     Fan vent1 = {0}; bool haveFan = false;
     Rectangle fanArea = (Rectangle){0};

@@ -533,8 +533,9 @@ bool Fase2(void) {
     if (barraElevTex.id==0) barraElevTex = LoadTexture("assets/map/barras/branca.png");
     Texture2D barraMovTex = LoadTexture("assets/map/barras/barragorda.png");
     bool barraMovShared = false;
+    Texture2D barraMovDefault = LoadTexture("assets/map/barras/branca.png");
     if (barraMovTex.id==0) {
-        barraMovTex = LoadTexture("assets/map/barras/branca.png");
+        barraMovTex = barraMovDefault;
         if (barraMovTex.id==0) { barraMovTex = barraElevTex; barraMovShared = true; }
     }
     Texture2D coopBoxTex = LoadTexture("assets/map/caixa/caixa2.png");
