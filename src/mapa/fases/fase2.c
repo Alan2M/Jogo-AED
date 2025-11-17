@@ -360,19 +360,25 @@ bool Fase2(void) {
             }
         }
 
-        for (int p = 0; p < 3; ++p) {
+        bool respawnAll = false;
+        for (int p = 0; p < 3 && !respawnAll; ++p) {
             Player* pl = players[p];
             LakeType elem = (p == 0) ? LAKE_EARTH : (p == 1 ? LAKE_FIRE : LAKE_WATER);
             for (int i = 0; i < lakeSegCount; ++i) {
                 Lake temp; temp.rect = lakeSegs[i].rect; temp.type = lakeSegs[i].type; temp.color = WHITE;
                 if (LakeHandlePlayer(&temp, pl, elem)) {
-                    if (p == 0) { pl->rect.x = spawnTerra.x; pl->rect.y = spawnTerra.y; }
-                    else if (p == 1) { pl->rect.x = spawnFogo.x; pl->rect.y = spawnFogo.y; }
-                    else { pl->rect.x = spawnAgua.x; pl->rect.y = spawnAgua.y; }
-                    pl->velocity = (Vector2){0,0}; pl->isJumping = false;
+                    respawnAll = true;
                     break;
                 }
             }
+        }
+        if (respawnAll) {
+            earthboy.rect.x = spawnTerra.x; earthboy.rect.y = spawnTerra.y;
+            fireboy.rect.x  = spawnFogo.x;  fireboy.rect.y  = spawnFogo.y;
+            watergirl.rect.x= spawnAgua.x;  watergirl.rect.y= spawnAgua.y;
+            earthboy.velocity = fireboy.velocity = watergirl.velocity = (Vector2){0,0};
+            earthboy.isJumping = fireboy.isJumping = watergirl.isJumping = false;
+            continue;
         }
 
         reachedAgua = reachedAgua || PhaseCheckDoor(&doorAgua, &watergirl);

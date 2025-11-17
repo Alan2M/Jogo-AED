@@ -69,7 +69,7 @@ static int ParseLakeSegments(const char* tmxPath, LakeSegment* out, int cap) {
 
         char nameLower[128];
         PhaseToLowerCopy(nameBuf, nameLower, sizeof(nameLower));
-        if (StrContains(nameLower, "spawn")) {
+        if (StrContains(nameLower, "spawn") || StrContains(nameLower, "porta")) {
             search = groupEnd + 1;
             continue;
         }
@@ -202,9 +202,6 @@ bool Fase5(void) {
     Rectangle doorEarth = CollectDoor(tmx, "portaTerra");
     Rectangle doorFire  = CollectDoor(tmx, "portaFogo");
     Rectangle doorWater = CollectDoor(tmx, "portaAgua");
-    Texture2D doorEarthTex = LoadTextureIfExists("assets/map/portas/pixil-layer-portaterra.png");
-    Texture2D doorFireTex  = LoadTextureIfExists("assets/map/portas/pixil-layer-portafogo.png");
-    Texture2D doorWaterTex = LoadTextureIfExists("assets/map/portas/pixil-layer-portaagua.png");
 
     Player earthboy, fireboy, watergirl;
     InitEarthboy(&earthboy);
@@ -243,21 +240,25 @@ bool Fase5(void) {
         Player* players[3] = { &earthboy, &fireboy, &watergirl };
         PhaseResolvePlayersVsWorld(players, 3, colisas, colCount, PHASE_STEP_HEIGHT);
 
-        // Respawn por cair em lago errado
-        for (int p = 0; p < 3; ++p) {
+        bool respawnAll = false;
+        for (int p = 0; p < 3 && !respawnAll; ++p) {
             Player* pl = players[p];
             LakeType target = (p == 0) ? LAKE_EARTH : (p == 1 ? LAKE_FIRE : LAKE_WATER);
             for (int i = 0; i < lakeCount; ++i) {
                 Lake temp = { lakes[i].rect, lakes[i].type, (Color){0} };
                 if (LakeHandlePlayer(&temp, pl, target)) {
-                    if (p == 0) { pl->rect.x = spawnEarthPos.x; pl->rect.y = spawnEarthPos.y; }
-                    else if (p == 1) { pl->rect.x = spawnFirePos.x; pl->rect.y = spawnFirePos.y; }
-                    else { pl->rect.x = spawnWaterPos.x; pl->rect.y = spawnWaterPos.y; }
-                    pl->velocity = (Vector2){0,0};
-                    pl->isJumping = false;
+                    respawnAll = true;
                     break;
                 }
             }
+        }
+        if (respawnAll) {
+            earthboy.rect.x = spawnEarthPos.x; earthboy.rect.y = spawnEarthPos.y;
+            fireboy.rect.x  = spawnFirePos.x;  fireboy.rect.y  = spawnFirePos.y;
+            watergirl.rect.x= spawnWaterPos.x; watergirl.rect.y= spawnWaterPos.y;
+            earthboy.velocity = fireboy.velocity = watergirl.velocity = (Vector2){0,0};
+            earthboy.isJumping = fireboy.isJumping = watergirl.isJumping = false;
+            continue;
         }
 
         bool finishedByDoors = PlayersAtDoors(&doorEarth, &doorFire, &doorWater, &earthboy, &fireboy, &watergirl);
@@ -286,13 +287,6 @@ bool Fase5(void) {
         if (!insideOwn[1]) DrawPlayer(fireboy);
         if (!insideOwn[2]) DrawPlayer(watergirl);
 
-        if (doorEarthTex.id && doorEarth.width > 0 && doorEarth.height > 0)
-            DrawTexturePro(doorEarthTex, (Rectangle){0,0,(float)doorEarthTex.width,(float)doorEarthTex.height}, doorEarth, (Vector2){0,0}, 0.0f, WHITE);
-        if (doorFireTex.id && doorFire.width > 0 && doorFire.height > 0)
-            DrawTexturePro(doorFireTex, (Rectangle){0,0,(float)doorFireTex.width,(float)doorFireTex.height}, doorFire, (Vector2){0,0}, 0.0f, WHITE);
-        if (doorWaterTex.id && doorWater.width > 0 && doorWater.height > 0)
-            DrawTexturePro(doorWaterTex, (Rectangle){0,0,(float)doorWaterTex.width,(float)doorWaterTex.height}, doorWater, (Vector2){0,0}, 0.0f, WHITE);
-
         if (debug) {
             for (int i = 0; i < colCount; ++i) DrawRectangleLinesEx(colisas[i].rect, 1, Fade(GREEN, 0.5f));
             if (doorEarth.width > 0 && doorEarth.height > 0) DrawRectangleLinesEx(doorEarth, 1, Fade(BROWN, 0.6f));
@@ -312,9 +306,6 @@ bool Fase5(void) {
     PhaseUnloadLakeSet(&animFogo);
     PhaseUnloadLakeSet(&animTerra);
     PhaseUnloadLakeSet(&animAcido);
-    if (doorEarthTex.id) UnloadTexture(doorEarthTex);
-    if (doorFireTex.id) UnloadTexture(doorFireTex);
-    if (doorWaterTex.id) UnloadTexture(doorWaterTex);
     UnloadPlayer(&earthboy);
     UnloadPlayer(&fireboy);
     UnloadPlayer(&watergirl);

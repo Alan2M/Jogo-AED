@@ -100,19 +100,25 @@ bool Fase3(void) {
         Player* players[3] = { &earthboy, &fireboy, &watergirl };
         PhaseResolvePlayersVsWorld(players, 3, colisoes, totalColisoes, PHASE_STEP_HEIGHT);
 
-        for (int p = 0; p < 3; ++p) {
+        bool respawnAll = false;
+        for (int p = 0; p < 3 && !respawnAll; ++p) {
             Player* pl = players[p];
             LakeType elem = (p == 0) ? LAKE_EARTH : (p == 1 ? LAKE_FIRE : LAKE_WATER);
             for (int i = 0; i < lakeSegCount; ++i) {
                 Lake temp; temp.rect = lakeSegs[i].rect; temp.type = lakeSegs[i].type;
                 if (LakeHandlePlayer(&temp, pl, elem)) {
-                    if (p == 0) { pl->rect.x = spawnEarth.x; pl->rect.y = spawnEarth.y; }
-                    else if (p == 1) { pl->rect.x = spawnFire.x; pl->rect.y = spawnFire.y; }
-                    else { pl->rect.x = spawnWater.x; pl->rect.y = spawnWater.y; }
-                    pl->velocity = (Vector2){0,0}; pl->isJumping = false;
+                    respawnAll = true;
                     break;
                 }
             }
+        }
+        if (respawnAll) {
+            earthboy.rect.x = spawnEarth.x; earthboy.rect.y = spawnEarth.y;
+            fireboy.rect.x  = spawnFire.x;  fireboy.rect.y  = spawnFire.y;
+            watergirl.rect.x= spawnWater.x; watergirl.rect.y= spawnWater.y;
+            earthboy.velocity = fireboy.velocity = watergirl.velocity = (Vector2){0,0};
+            earthboy.isJumping = fireboy.isJumping = watergirl.isJumping = false;
+            continue;
         }
 
         reachedWater = reachedWater || PhaseCheckDoor(&doorWater, &watergirl);

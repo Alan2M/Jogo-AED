@@ -1,2 +1,17 @@
+# Compilação
+build/
 *.exe
-output/
+*.o
+*.obj
+*.log
+
+# VSCode
+.vscode/
+
+# Sistema
+Thumbs.db
+desktop.ini
+
+# Outros
+*.dll
+*.pdb
