@@ -664,6 +664,7 @@ bool Fase5(void) {
     Camera2D cam = {0}; cam.target=(Vector2){mapTex.width/2.0f,mapTex.height/2.0f}; cam.offset=(Vector2){GetScreenWidth()/2.0f,GetScreenHeight()/2.0f}; cam.zoom=1.0f;
 
     bool completed=false; float elapsed=0.0f; bool debug=false;
+    bool earthAtDoor=false, fireAtDoor=false, waterAtDoor=false;
     bool tempoButtonLatched=false; float tempoButtonTimer=0.0f; float barra3Timer=0.0f;
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
@@ -839,9 +840,9 @@ bool Fase5(void) {
             }
         }
 
-        bool earthAtDoor = PlayerAtDoor(&earthboy, doorTerra);
-        bool fireAtDoor  = PlayerAtDoor(&fireboy,  doorFogo);
-        bool waterAtDoor = PlayerAtDoor(&watergirl, doorAgua);
+        earthAtDoor = PlayerAtDoor(&earthboy, doorTerra);
+        fireAtDoor  = PlayerAtDoor(&fireboy,  doorFogo);
+        waterAtDoor = PlayerAtDoor(&watergirl, doorAgua);
 
         // Desenho
         BeginDrawing(); ClearBackground(BLACK); BeginMode2D(cam);

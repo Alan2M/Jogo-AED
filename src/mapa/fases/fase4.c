@@ -132,15 +132,12 @@ static bool AnyButtonPressedWithToken(const PhaseButton* buttons, int count, con
 
 static bool PlayerAtDoor(const Player* p, Rectangle door) {
     if (door.width <= 0 || door.height <= 0) return false;
-    float pxCenter = p->rect.x + p->rect.width * 0.5f;
-    float doorLeft = door.x;
-    float doorRight = door.x + door.width;
-    const float toleranceX = 10.0f;
-    if (pxCenter < doorLeft - toleranceX || pxCenter > doorRight + toleranceX) return false;
-    float feet = p->rect.y + p->rect.height;
-    float doorBase = door.y + door.height;
-    const float toleranceY = 18.0f;
-    return feet >= doorBase - toleranceY && feet <= doorBase + toleranceY;
+    Rectangle expanded = door;
+    expanded.x -= 12.0f;
+    expanded.width += 24.0f;
+    expanded.y -= 6.0f;
+    expanded.height += 12.0f;
+    return CheckCollisionRecs(p->rect, expanded);
 }
 
 static void DrawPlatformWithTexture(const Platform* plat, Texture2D tex, Color fallback) {
@@ -780,6 +777,10 @@ fim_bloco:
         bool earthAtDoor = PlayerAtDoor(&earthboy, doorTerra);
         bool fireAtDoor  = PlayerAtDoor(&fireboy,  doorFogo);
         bool waterAtDoor = PlayerAtDoor(&watergirl, doorAgua);
+        bool allAtAgua = PlayerAtDoor(&earthboy, doorAgua) &&
+                         PlayerAtDoor(&fireboy, doorAgua)  &&
+                         PlayerAtDoor(&watergirl, doorAgua);
+        if (allAtAgua) { completed = true; break; }
 
         if (fanArea.width > 0 && fanArea.height > 0) {
             for (int p = 0; p < 3; ++p) {
