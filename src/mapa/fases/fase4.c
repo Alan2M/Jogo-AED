@@ -6,6 +6,7 @@
 #include "../../ranking/ranking.h"
 #include "../../objects/fan.h"
 #include "../../interface/pause.h"
+#include "phase_common.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,9 +14,7 @@
 #include <ctype.h>
 
 #define MAX_COLISOES 1024
-#define STEP_HEIGHT 14.0f   // altura máxima que o jogador pode "subir" sem pular
 #define MAX_BUTTONS 16
-#define BUTTON_NAME_LEN 64
 #define MAX_COOP_BOXES 4
 #define MAX_FAN_FRAMES 8
 #define FAN_FRAME_TIME 0.12f
@@ -23,33 +22,7 @@
 static const char* const FASE1_TMX_PATH = "assets/maps/fase4/fase4.tmx";
 static const char* const FASE1_MAP_TEXTURE = "assets/maps/fase4/fase4.png";
 
-typedef struct {
-    Rectangle rect;
-} Colisao;
-
-typedef enum { PART_LEFT = 0, PART_MIDDLE, PART_RIGHT } LakePart;
-
 #define MAX_LAKE_SEGS 256
-
-typedef struct LakeSegment {
-    Rectangle rect;
-    LakeType type;
-    LakePart part;
-} LakeSegment;
-
-typedef struct LakeAnimFrames {
-    Texture2D left[16]; int leftCount;
-    Texture2D middle[16]; int middleCount;
-    Texture2D right[16]; int rightCount;
-    float timer; int frame;
-} LakeAnimFrames;
-
-typedef struct ButtonSpriteSet {
-    Texture2D blue;
-    Texture2D red;
-    Texture2D white;
-    Texture2D brown;
-} ButtonSpriteSet;
 
 typedef struct PhaseButton {
     Button button;
@@ -57,70 +30,6 @@ typedef struct PhaseButton {
     char nameLower[BUTTON_NAME_LEN];
     bool pressed;
 } PhaseButton;
-
-static Texture2D LoadTextureIfExists(const char* path) {
-    if (!FileExists(path)) return (Texture2D){0};
-    return LoadTexture(path);
-}
-
-typedef struct Platform {
-    Rectangle rect;
-    Rectangle area;
-    float startY;
-    float speed;
-} Platform;
-
-static float moveTowards(float a, float b, float maxStep) {
-    if (a < b) { a += maxStep; if (a > b) a = b; }
-    else if (a > b) { a -= maxStep; if (a < b) a = b; }
-    return a;
-}
-
-static void PlatformInit(Platform* p, Rectangle rect, Rectangle area, float speed) {
-    if (area.width <= 0 || area.height <= 0) area = rect;
-    p->rect = rect;
-    p->area = area;
-    p->speed = speed;
-    float minY = area.y;
-    float maxY = area.y + area.height - rect.height;
-    if (maxY < minY) maxY = minY;
-    if (p->rect.y < minY) p->rect.y = minY;
-    if (p->rect.y > maxY) p->rect.y = maxY;
-    p->startY = p->rect.y;
-}
-
-static float PlatformBottomTarget(const Platform* p) {
-    float minY = p->area.y;
-    float maxY = p->area.y + p->area.height - p->rect.height;
-    if (maxY < minY) maxY = minY;
-    return maxY;
-}
-
-static float PlatformMoveTowards(Platform* p, float targetY) {
-    if (p->rect.width <= 0 || p->rect.height <= 0) return 0.0f;
-    float minY = p->area.y;
-    float maxY = p->area.y + p->area.height - p->rect.height;
-    if (maxY < minY) maxY = minY;
-    if (targetY < minY) targetY = minY;
-    if (targetY > maxY) targetY = maxY;
-    float prevY = p->rect.y;
-    p->rect.y = moveTowards(p->rect.y, targetY, p->speed);
-    if (p->rect.y < minY) p->rect.y = minY;
-    if (p->rect.y > maxY) p->rect.y = maxY;
-    return p->rect.y - prevY;
-}
-
-static void HandlePlatformTop(Player* pl, Rectangle plat, float deltaY) {
-    if (plat.width <= 0 || plat.height <= 0) return;
-    if (!CheckCollisionRecs(pl->rect, plat)) return;
-    float pBottom = pl->rect.y + pl->rect.height;
-    if (pBottom <= plat.y + 16.0f && pl->velocity.y >= -1.0f) {
-        pl->rect.y = plat.y - pl->rect.height;
-        pl->velocity.y = 0;
-        pl->isJumping = false;
-        pl->rect.y += deltaY;
-    }
-}
 
 static bool AnyButtonPressedWithToken(const PhaseButton* buttons, int count, const char* tokenLower) {
     if (!tokenLower || !tokenLower[0]) return false;
@@ -266,49 +175,9 @@ static void ResolveCoOpBoxVsWorld(CoOpBox* box, const Colisao* col, int colCount
     }
 }
 
-static void ToLowerCopy(const char* src, char* dst, size_t dstSize) {
-    if (dstSize == 0) return;
-    size_t i = 0;
-    for (; src[i] && i + 1 < dstSize; ++i) dst[i] = (char)tolower((unsigned char)src[i]);
-    dst[i] = '\0';
-}
 
-static int CollectButtonGroupNames(const char* tmxPath, char names[][BUTTON_NAME_LEN], int maxNames) {
-    if (maxNames <= 0) return 0;
-    char* xml = LoadFileText(tmxPath);
-    if (!xml) return 0;
-    int count = 0;
-    const char* search = xml;
-    while (count < maxNames && (search = strstr(search, "<objectgroup")) != NULL) {
-        const char* tagClose = strchr(search, '>');
-        if (!tagClose) break;
-        const char* nameAttr = strstr(search, "name=\"");
-        if (!nameAttr || nameAttr > tagClose) { search = tagClose + 1; continue; }
-        nameAttr += 6;
-        char nameBuf[BUTTON_NAME_LEN];
-        size_t idx = 0;
-        while (nameAttr[idx] && nameAttr[idx] != '"' && idx + 1 < sizeof(nameBuf)) {
-            nameBuf[idx] = nameAttr[idx];
-            idx++;
-        }
-        nameBuf[idx] = '\0';
-        char lower[BUTTON_NAME_LEN];
-        ToLowerCopy(nameBuf, lower, sizeof(lower));
-        if (!strstr(lower, "botao")) { search = tagClose + 1; continue; }
-        bool exists = false;
-        for (int i = 0; i < count; ++i) {
-            if (strcmp(names[i], nameBuf) == 0) { exists = true; break; }
-        }
-        if (!exists) {
-            strncpy(names[count], nameBuf, BUTTON_NAME_LEN - 1);
-            names[count][BUTTON_NAME_LEN - 1] = '\0';
-            count++;
-        }
-        search = tagClose + 1;
-    }
-    UnloadFileText(xml);
-    return count;
-}
+
+
 
 static void DetermineButtonColors(const char* nameLower, Color* up, Color* down) {
     if (strstr(nameLower, "azul")) {
@@ -335,113 +204,9 @@ static void DetermineButtonColors(const char* nameLower, Color* up, Color* down)
     *down = (Color){200, 140, 20, 255};
 }
 
-static const Texture2D* PickButtonSprite(const char* nameLower, const ButtonSpriteSet* sprites) {
-    if (strstr(nameLower, "branc") && sprites->white.id != 0) return &sprites->white;
-    if (strstr(nameLower, "azul") && sprites->blue.id != 0) return &sprites->blue;
-    if (strstr(nameLower, "verm") && sprites->red.id != 0) return &sprites->red;
-    if ((strstr(nameLower, "marr") || strstr(nameLower, "terra")) && sprites->brown.id != 0) return &sprites->brown;
-    if (sprites->blue.id != 0) return &sprites->blue;
-    if (sprites->red.id != 0) return &sprites->red;
-    if (sprites->white.id != 0) return &sprites->white;
-    if (sprites->brown.id != 0) return &sprites->brown;
-    return NULL;
-}
 
-static int LoadFramesRange(Texture2D* arr, int max, const char* pattern, int startIdx, int endIdx) {
-    // Carrega frames sequenciais verificando existência (evita WARNINGs); para no primeiro buraco
-    int count = 0; bool started = false;
-    for (int i = startIdx; i <= endIdx && count < max; ++i) {
-        char path[256]; snprintf(path, sizeof(path), pattern, i);
-        if (!FileExists(path)) { if (started) break; else continue; }
-        Texture2D tex = LoadTexture(path);
-        if (tex.id != 0) { arr[count++] = tex; started = true; }
-        else if (started) { break; }
-    }
-    return count;
-}
 
-static void LoadLakeSet_Agua(LakeAnimFrames* s) {
-    s->leftCount = LoadFramesRange(s->left, 16, "assets/map/agua/esquerdo/pixil-frame-%d.png", 0, 15);
-    s->middleCount = LoadFramesRange(s->middle, 16, "assets/map/agua/meio/pixil-frame-%d.png", 0, 15);
-    s->rightCount = LoadFramesRange(s->right, 16, "assets/map/agua/direito/pixil-frame-%d.png", 0, 15);
-    s->timer = 0.0f; s->frame = 0;
-}
 
-static void LoadLakeSet_Terra(LakeAnimFrames* s) {
-    s->leftCount = LoadFramesRange(s->left, 16, "assets/map/terra/esquerdo/pixil-frame-%d.png", 0, 15);
-    s->middleCount = LoadFramesRange(s->middle, 16, "assets/map/terra/meio/pixil-frame-%d.png", 0, 15);
-    s->rightCount = LoadFramesRange(s->right, 16, "assets/map/terra/direito/pixil-frame-%d.png", 0, 15);
-    s->timer = 0.0f; s->frame = 0;
-}
-
-static void LoadLakeSet_Fogo(LakeAnimFrames* s) {
-    // Tenta nomes Esquerda1.., Meio1.., Direita1..; se falhar, tenta pixil-frame-%d
-    s->leftCount = LoadFramesRange(s->left, 16, "assets/map/fogo/esquerdo/Esquerda%d.png", 1, 32);
-    if (s->leftCount == 0) s->leftCount = LoadFramesRange(s->left, 16, "assets/map/fogo/esquerdo/pixil-frame-%d.png", 0, 31);
-    s->middleCount = LoadFramesRange(s->middle, 16, "assets/map/fogo/meio/Meio%d.png", 1, 32);
-    if (s->middleCount == 0) s->middleCount = LoadFramesRange(s->middle, 16, "assets/map/fogo/meio/pixil-frame-%d.png", 0, 31);
-    s->rightCount = LoadFramesRange(s->right, 16, "assets/map/fogo/direito/Direita%d.png", 1, 32);
-    if (s->rightCount == 0) s->rightCount = LoadFramesRange(s->right, 16, "assets/map/fogo/direito/pixil-frame-%d.png", 0, 31);
-    s->timer = 0.0f; s->frame = 0;
-}
-
-static void UnloadLakeSet(LakeAnimFrames* s) {
-    for (int i = 0; i < s->leftCount; ++i) UnloadTexture(s->left[i]);
-    for (int i = 0; i < s->middleCount; ++i) UnloadTexture(s->middle[i]);
-    for (int i = 0; i < s->rightCount; ++i) UnloadTexture(s->right[i]);
-    s->leftCount = s->middleCount = s->rightCount = 0;
-}
-
-static void LoadLakeSet_Acido(LakeAnimFrames* s) {
-    s->leftCount   = LoadFramesRange(s->left,   16, "assets/map/acido/esquerdo/pixil-frame-%d.png", 0, 15);
-    s->middleCount = LoadFramesRange(s->middle, 16, "assets/map/acido/meio/pixil-frame-%d.png",     0, 15);
-    s->rightCount  = LoadFramesRange(s->right,  16, "assets/map/acido/direito/pixil-frame-%d.png",  0, 15);
-    s->timer = 0.0f; s->frame = 0;
-}
-
-static int ParseRectsFromGroup(const char* tmxPath, const char* groupName, Rectangle* out, int cap) {
-    int count = 0;
-    char* xml = LoadFileText(tmxPath);
-    if (!xml) return 0;
-
-    const char* search = xml;
-    while ((search = strstr(search, "<objectgroup")) != NULL) {
-        const char* tagClose = strchr(search, '>');
-        if (!tagClose) break;
-
-        bool match = false;
-        {
-            size_t len = (size_t)(tagClose - search);
-            char* header = (char*)malloc(len + 1);
-            if (!header) { UnloadFileText(xml); return count; }
-            memcpy(header, search, len);
-            header[len] = '\0';
-            char findName[128]; snprintf(findName, sizeof(findName), "name=\"%s\"", groupName);
-            if (strstr(header, findName)) match = true;
-            free(header);
-        }
-
-        const char* groupEnd = strstr(tagClose + 1, "</objectgroup>");
-        if (!groupEnd) break;
-
-        if (match) {
-            const char* p = tagClose + 1;
-            while (p < groupEnd) {
-                const char* obj = strstr(p, "<object ");
-                if (!obj || obj >= groupEnd) break;
-                float x=0,y=0,w=0,h=0;
-                if (sscanf(obj, "<object id=\"%*d\" x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\"", &x,&y,&w,&h) == 4) {
-                    if (w>0 && h>0 && count < cap) out[count++] = (Rectangle){x,y,w,h};
-                }
-                p = obj + 8;
-            }
-        }
-        search = groupEnd + 14;
-    }
-
-    UnloadFileText(xml);
-    return count;
-}
 
 static int ParseColisoesDaCamada(const char* tmxPath, Colisao* out, int outCap) {
     Rectangle rects[MAX_COLISOES];
@@ -456,7 +221,7 @@ bool Fase4(void) {
     Colisao colisoes[MAX_COLISOES];
     int totalColisoes = ParseColisoesDaCamada(FASE1_TMX_PATH, colisoes, MAX_COLISOES);
     if (totalColisoes <= 0) {
-        printf("❌ Nao foi possivel carregar colisoes da camada 'Colisao' em %s\n", FASE1_TMX_PATH);
+        printf("Nao foi possivel carregar colisoes da camada 'Colisao' em %s\n", FASE1_TMX_PATH);
     }
 
     // --- Carrega segmentos de lagos conforme camadas do Tiled ---
@@ -501,7 +266,7 @@ bool Fase4(void) {
     // --- Carrega textura do mapa ---
     Texture2D mapTexture = LoadTexture(FASE1_MAP_TEXTURE);
     if (mapTexture.id == 0) {
-        printf("❌ Erro ao carregar %s\n", FASE1_MAP_TEXTURE);
+        printf("Erro ao carregar %s\n", FASE1_MAP_TEXTURE);
         return false;
     }
 
@@ -517,28 +282,26 @@ bool Fase4(void) {
     PhaseButton buttons[MAX_BUTTONS] = {0};
     int buttonCount = 0;
     ButtonSpriteSet buttonSprites = {0};
-    buttonSprites.blue  = LoadTexture("assets/map/buttons/pixil-layer-bluebutton.png");
-    buttonSprites.red   = LoadTexture("assets/map/buttons/pixil-layer-redbutton.png");
-    buttonSprites.white = LoadTexture("assets/map/buttons/pixil-layer-whitebutton.png");
-    buttonSprites.brown = LoadTexture("assets/map/buttons/pixil-layer-brownbutton.png");
+    PhaseLoadButtonSprites(&buttonSprites);
+
     char groupNames[MAX_BUTTONS][BUTTON_NAME_LEN] = {{0}};
-    int groupCount = CollectButtonGroupNames(FASE1_TMX_PATH, groupNames, MAX_BUTTONS);
+    int groupCount = PhaseCollectButtonGroupNames(FASE1_TMX_PATH, groupNames, MAX_BUTTONS);
     Rectangle btnBuffer[8];
     for (int g = 0; g < groupCount && buttonCount < MAX_BUTTONS; ++g) {
         int rectsFound = ParseRectsFromGroup(FASE1_TMX_PATH, groupNames[g], btnBuffer, (int)(sizeof(btnBuffer)/sizeof(btnBuffer[0])));
         if (rectsFound <= 0) continue;
         char lowerName[BUTTON_NAME_LEN];
-        ToLowerCopy(groupNames[g], lowerName, sizeof(lowerName));
+        PhaseToLowerCopy(groupNames[g], lowerName, sizeof(lowerName));
         Color colorUp, colorDown;
         DetermineButtonColors(lowerName, &colorUp, &colorDown);
-        const Texture2D* sprite = PickButtonSprite(lowerName, &buttonSprites);
+        const Texture2D* sprite = PhasePickButtonSprite(&buttonSprites, lowerName);
         for (int r = 0; r < rectsFound && buttonCount < MAX_BUTTONS; ++r) {
             Rectangle rect = btnBuffer[r];
             ButtonInit(&buttons[buttonCount].button, rect.x, rect.y, rect.width, rect.height, colorUp, colorDown);
             if (sprite) ButtonSetSprites(&buttons[buttonCount].button, sprite, NULL);
             strncpy(buttons[buttonCount].name, groupNames[g], BUTTON_NAME_LEN - 1);
             buttons[buttonCount].name[BUTTON_NAME_LEN - 1] = '\0';
-            ToLowerCopy(groupNames[g], buttons[buttonCount].nameLower, BUTTON_NAME_LEN);
+            PhaseToLowerCopy(groupNames[g], buttons[buttonCount].nameLower, BUTTON_NAME_LEN);
             buttons[buttonCount].pressed = false;
             buttonCount++;
         }
@@ -554,7 +317,7 @@ bool Fase4(void) {
     if (rectCount > 0) {
         Rectangle area = rectBuf[0];
         if (ParseRectsFromGroup(FASE1_TMX_PATH, "AreaMovimentoBarra1", areaBuf, 1) > 0) area = areaBuf[0];
-        PlatformInit(&barra1, rectBuf[0], area, 2.0f);
+        PhasePlatformInit(&barra1, rectBuf[0], area, 2.0f);
         if (totalColisoes < MAX_COLISOES) {
             barra1ColIndex = totalColisoes;
             colisoes[totalColisoes++].rect = barra1.rect;
@@ -564,13 +327,13 @@ bool Fase4(void) {
     if (rectCount > 0) {
         Rectangle area = rectBuf[0];
         if (ParseRectsFromGroup(FASE1_TMX_PATH, "Elavador1_area", areaBuf, 1) > 0) area = areaBuf[0];
-        PlatformInit(&elevador1, rectBuf[0], area, 1.6f);
+        PhasePlatformInit(&elevador1, rectBuf[0], area, 1.6f);
     }
     rectCount = ParseRectsFromGroup(FASE1_TMX_PATH, "Elevaodor2_Colisao", rectBuf, 1);
     if (rectCount > 0) {
         Rectangle area = rectBuf[0];
         if (ParseRectsFromGroup(FASE1_TMX_PATH, "Elavador2_area", areaBuf, 1) > 0) area = areaBuf[0];
-        PlatformInit(&elevador2, rectBuf[0], area, 1.8f);
+        PhasePlatformInit(&elevador2, rectBuf[0], area, 1.8f);
     }
 
     Texture2D barraAzulTex = LoadTexture("assets/map/barras/BarraAzulFase1.png");
@@ -657,53 +420,8 @@ bool Fase4(void) {
         UpdatePlayer(&fireboy,  (Rectangle){0, mapTexture.height, mapTexture.width, 100}, KEY_LEFT, KEY_RIGHT, KEY_UP);
         UpdatePlayer(&watergirl,(Rectangle){0, mapTexture.height, mapTexture.width, 100}, KEY_J, KEY_L, KEY_I);
 
-        // --- Colisões completas (com degraus e teto bloqueado) ---
-        Player* players[3] = {&earthboy, &fireboy, &watergirl};
-        for (int p = 0; p < 3; p++) {
-            Player* pl = players[p];
-            for (int i = 0; i < totalColisoes; i++) {
-                Rectangle bloco = colisoes[i].rect;
-
-                if (CheckCollisionRecs(pl->rect, bloco)) {
-                    float dx = (pl->rect.x + pl->rect.width / 2) - (bloco.x + bloco.width / 2);
-                    float dy = (pl->rect.y + pl->rect.height / 2) - (bloco.y + bloco.height / 2);
-                    float overlapX = (pl->rect.width / 2 + bloco.width / 2) - fabsf(dx);
-                    float overlapY = (pl->rect.height / 2 + bloco.height / 2) - fabsf(dy);
-
-                    if (overlapX < overlapY) {
-                        // --- Tentativa de subir degrau ---
-                        if (dy > 0 && pl->velocity.y > 0) {
-                            // caindo ao lado do bloco → trata no eixo Y primeiro (evita atravessar lateral)
-                        } else {
-                            Rectangle teste = pl->rect;
-                            teste.y -= STEP_HEIGHT;
-                            if (!CheckCollisionRecs(teste, bloco)) {
-                                pl->rect.y -= STEP_HEIGHT;
-                                goto fim_bloco; // subiu o degrau, evita correção lateral extra
-                            }
-                        }
-                        // --- Bloqueio lateral normal ---
-                        if (dx > 0) pl->rect.x += overlapX;
-                        else        pl->rect.x -= overlapX;
-                        pl->velocity.x = 0;
-                    } else {
-                        // --- Corrige colisão vertical (teto e chão) ---
-                        if (dy > 0 && pl->velocity.y < 0) {
-                            // Jogador bateu de baixo (subindo) → teto
-                            pl->rect.y += overlapY;
-                            pl->velocity.y = 0;
-                        }
-                        else if (dy < 0 && pl->velocity.y >= 0) {
-                            // Jogador caiu sobre o bloco (chão)
-                            pl->rect.y -= overlapY;
-                            pl->velocity.y = 0;
-                            pl->isJumping = false;
-                        }
-                    }
-fim_bloco:
-                }
-            }
-        }
+        Player* players[3] = { &earthboy, &fireboy, &watergirl };
+        PhaseResolvePlayersVsWorld(players, 3, colisoes, totalColisoes, PHASE_STEP_HEIGHT);
 
         struct { Player* pl; int keyLeft; int keyRight; } controls[3] = {
             { &earthboy, KEY_A, KEY_D },
@@ -799,9 +517,9 @@ fim_bloco:
             }
         }
 
-        float barraDelta = PlatformMoveTowards(&barra1, barraButtonsActive ? PlatformBottomTarget(&barra1) : barra1.startY);
-        float elev1Delta = PlatformMoveTowards(&elevador1, elevador1Active ? PlatformBottomTarget(&elevador1) : elevador1.startY);
-        float elev2Delta = PlatformMoveTowards(&elevador2, elevador2Active ? PlatformBottomTarget(&elevador2) : elevador2.startY);
+        float barraDelta = PhasePlatformMoveTowards(&barra1, barraButtonsActive ? PhasePlatformBottomTarget(&barra1) : barra1.startY);
+        float elev1Delta = PhasePlatformMoveTowards(&elevador1, elevador1Active ? PhasePlatformBottomTarget(&elevador1) : elevador1.startY);
+        float elev2Delta = PhasePlatformMoveTowards(&elevador2, elevador2Active ? PhasePlatformBottomTarget(&elevador2) : elevador2.startY);
 
         if (barra1ColIndex >= 0 && barra1ColIndex < totalColisoes) {
             colisoes[barra1ColIndex].rect = barra1.rect;
@@ -809,9 +527,9 @@ fim_bloco:
 
         for (int p = 0; p < 3; ++p) {
             Player* pl = players[p];
-            if (barra1.rect.width > 0 && barra1.rect.height > 0) HandlePlatformTop(pl, barra1.rect, barraDelta);
-            if (elevador1.rect.width > 0 && elevador1.rect.height > 0) HandlePlatformTop(pl, elevador1.rect, elev1Delta);
-            if (elevador2.rect.width > 0 && elevador2.rect.height > 0) HandlePlatformTop(pl, elevador2.rect, elev2Delta);
+            if (barra1.rect.width > 0 && barra1.rect.height > 0) PhaseHandlePlatformTop(pl, barra1.rect, barraDelta);
+            if (elevador1.rect.width > 0 && elevador1.rect.height > 0) PhaseHandlePlatformTop(pl, elevador1.rect, elev1Delta);
+            if (elevador2.rect.width > 0 && elevador2.rect.height > 0) PhaseHandlePlatformTop(pl, elevador2.rect, elev2Delta);
         }
 
         // --- Desenho ---
@@ -869,10 +587,7 @@ fim_bloco:
         // Avança frames (8 FPS)
         float lakeDt = GetFrameTime();
         LakeAnimFrames* sets[4] = { &animAgua, &animFogo, &animTerra, &animAcido };
-        for (int s = 0; s < 4; ++s) {
-            sets[s]->timer += lakeDt;
-            if (sets[s]->timer >= 0.12f) { sets[s]->timer = 0.0f; sets[s]->frame = (sets[s]->frame + 1) % 64; }
-        }
+        PhaseUpdateLakeAnimations(sets, 4, lakeDt, 0.12f);
 
         // 1) Desenha jogadores que estao dentro do lago correto (por trás)
         if (insideOwn[0]) DrawPlayer(earthboy);
@@ -888,12 +603,9 @@ fim_bloco:
             else if (seg->type == LAKE_EARTH) anim = &animTerra;
             else if (seg->type == LAKE_POISON) anim = &animAcido;
 
-            if (anim && ((seg->part==PART_LEFT && anim->leftCount>0) || (seg->part==PART_MIDDLE && anim->middleCount>0) || (seg->part==PART_RIGHT && anim->rightCount>0))) {
-                Texture2D frame;
-                int idx;
-                if (seg->part == PART_LEFT) { idx = (anim->frame % anim->leftCount); frame = anim->left[idx]; }
-                else if (seg->part == PART_MIDDLE) { idx = (anim->frame % anim->middleCount); frame = anim->middle[idx]; }
-                else { idx = (anim->frame % anim->rightCount); frame = anim->right[idx]; }
+            const Texture2D* frameTex = PhasePickLakeFrame(anim, seg->part);
+            if (frameTex && frameTex->id != 0) {
+                Texture2D frame = *frameTex;
                 if (seg->part == PART_MIDDLE) {
                     // Tile horizontal com passo de 27px (tamanho do tile do mapa)
                     float tile = seg->rect.height; // 27 no mapa
@@ -961,10 +673,10 @@ fim_bloco:
 
     // --- Libera recursos ---
     UnloadTexture(mapTexture);
-    UnloadLakeSet(&animAgua);
-    UnloadLakeSet(&animFogo);
-    UnloadLakeSet(&animTerra);
-    UnloadLakeSet(&animAcido);
+    PhaseUnloadLakeSet(&animAgua);
+    PhaseUnloadLakeSet(&animFogo);
+    PhaseUnloadLakeSet(&animTerra);
+    PhaseUnloadLakeSet(&animAcido);
     UnloadPlayer(&earthboy);
     UnloadPlayer(&fireboy);
     UnloadPlayer(&watergirl);
@@ -972,10 +684,7 @@ fim_bloco:
     if (barraBrancaTex.id != 0) UnloadTexture(barraBrancaTex);
     if (coopBoxTex.id != 0) UnloadTexture(coopBoxTex);
     for (int i = 0; i < fanFrameCount; ++i) if (fanFrames[i].id != 0) UnloadTexture(fanFrames[i]);
-    if (buttonSprites.blue.id != 0) UnloadTexture(buttonSprites.blue);
-    if (buttonSprites.red.id != 0) UnloadTexture(buttonSprites.red);
-    if (buttonSprites.white.id != 0) UnloadTexture(buttonSprites.white);
-    if (buttonSprites.brown.id != 0) UnloadTexture(buttonSprites.brown);
+    PhaseUnloadButtonSprites(&buttonSprites);
     if (completed) Ranking_Add(4, Game_GetPlayerName(), elapsed);
     return completed;
 }
