@@ -12,11 +12,13 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <ctype.h>
 
 #define MAX_COLISOES     1024
 #define MAX_LAKE_SEGS    256
 #define MAX_FANS         16
 #define MAX_BUTTONS      8
+#define BUTTON_NAME_LEN  64
 #define MAX_PLATFORMS    4
 #define STEP_HEIGHT      14.0f
 
@@ -43,6 +45,13 @@ typedef struct Platform {
     float startY;
     float speed;
 } Platform;
+
+typedef struct ButtonSpriteSet {
+    Texture2D blue;
+    Texture2D red;
+    Texture2D white;
+    Texture2D brown;
+} ButtonSpriteSet;
 
 static int ParseRectsFromGroup(const char* tmxPath, const char* groupName, Rectangle* out, int cap) {
     int count = 0;
@@ -99,6 +108,95 @@ static void AddLakeSegments(const char* tmxPath, const char* name, LakeType type
         segs[*count].part = part;
         (*count)++;
     }
+}
+
+static void ToLowerCopy(const char* src, char* dst, size_t dstSize) {
+    if (dstSize == 0) return;
+    size_t i = 0;
+    for (; src[i] && i + 1 < dstSize; ++i) dst[i] = (char)tolower((unsigned char)src[i]);
+    dst[i] = '\0';
+}
+
+static int CollectButtonGroupNames(const char* tmxPath, char names[][BUTTON_NAME_LEN], int maxNames) {
+    if (maxNames <= 0) return 0;
+    char* xml = LoadFileText(tmxPath);
+    if (!xml) return 0;
+    int count = 0;
+    const char* search = xml;
+    while (count < maxNames && (search = strstr(search, "<objectgroup")) != NULL) {
+        const char* tagClose = strchr(search, '>');
+        if (!tagClose) break;
+        const char* nameAttr = strstr(search, "name=\"");
+        if (!nameAttr || nameAttr > tagClose) { search = tagClose + 1; continue; }
+        nameAttr += 6;
+        char nameBuf[BUTTON_NAME_LEN];
+        size_t idx = 0;
+        while (nameAttr[idx] && nameAttr[idx] != '"' && idx + 1 < sizeof(nameBuf)) {
+            nameBuf[idx] = nameAttr[idx];
+            idx++;
+        }
+        nameBuf[idx] = '\0';
+        char lower[BUTTON_NAME_LEN];
+        ToLowerCopy(nameBuf, lower, sizeof(lower));
+        if (!strstr(lower, "botao")) { search = tagClose + 1; continue; }
+        bool exists = false;
+        for (int i = 0; i < count; ++i) {
+            if (strcmp(names[i], nameBuf) == 0) { exists = true; break; }
+        }
+        if (!exists) {
+            strncpy(names[count], nameBuf, BUTTON_NAME_LEN - 1);
+            names[count][BUTTON_NAME_LEN - 1] = '\0';
+            count++;
+        }
+        search = tagClose + 1;
+    }
+    UnloadFileText(xml);
+    return count;
+}
+
+static void DetermineButtonColors(const char* nameLower, Color* up, Color* down) {
+    if (strstr(nameLower, "azul")) {
+        *up = (Color){70, 120, 240, 220};
+        *down = (Color){40, 85, 200, 255};
+        return;
+    }
+    if (strstr(nameLower, "verm")) {
+        *up = (Color){210, 70, 70, 220};
+        *down = (Color){150, 40, 40, 255};
+        return;
+    }
+    if (strstr(nameLower, "branc")) {
+        *up = (Color){230, 230, 230, 220};
+        *down = (Color){190, 190, 210, 255};
+        return;
+    }
+    if (strstr(nameLower, "marr") || strstr(nameLower, "terra")) {
+        *up = (Color){180, 120, 70, 220};
+        *down = (Color){140, 90, 50, 255};
+        return;
+    }
+    *up = (Color){200, 200, 40, 200};
+    *down = (Color){200, 140, 20, 255};
+}
+
+static const Texture2D* PickButtonSprite(const char* nameLower, const ButtonSpriteSet* sprites) {
+    if (strstr(nameLower, "branc") && sprites->white.id != 0) return &sprites->white;
+    if (strstr(nameLower, "azul") && sprites->blue.id != 0) return &sprites->blue;
+    if (strstr(nameLower, "verm") && sprites->red.id != 0) return &sprites->red;
+    if ((strstr(nameLower, "marr") || strstr(nameLower, "terra")) && sprites->brown.id != 0) return &sprites->brown;
+    if (sprites->blue.id != 0) return &sprites->blue;
+    if (sprites->red.id != 0) return &sprites->red;
+    if (sprites->white.id != 0) return &sprites->white;
+    if (sprites->brown.id != 0) return &sprites->brown;
+    return NULL;
+}
+
+static bool AnyButtonPressedWithToken(const bool* states, char namesLower[][BUTTON_NAME_LEN], int count, const char* tokenLower) {
+    if (!tokenLower || !tokenLower[0]) return false;
+    for (int i = 0; i < count; ++i) {
+        if (states[i] && strstr(namesLower[i], tokenLower)) return true;
+    }
+    return false;
 }
 
 static int LoadFramesRange(Texture2D* arr, int max, const char* pattern, int startIdx, int endIdx) {
@@ -266,17 +364,59 @@ bool Fase2(void) {
     ParseRectsFromGroup(tmxPath, "PortaTerra",&doorTerra,1);
 
     Button buttons[MAX_BUTTONS]; int buttonCount = 0;
-    Rectangle btnRect[4];
-    if (ParseRectsFromGroup(tmxPath, "botao1ventilador1", btnRect, 4) > 0 && buttonCount < MAX_BUTTONS)
-        ButtonInit(&buttons[buttonCount++], btnRect[0].x, btnRect[0].y, btnRect[0].width, btnRect[0].height, (Color){200,200,40,200}, (Color){200,140,20,255});
-    if (ParseRectsFromGroup(tmxPath, "botao2ventilador1", btnRect, 4) > 0 && buttonCount < MAX_BUTTONS)
-        ButtonInit(&buttons[buttonCount++], btnRect[0].x, btnRect[0].y, btnRect[0].width, btnRect[0].height, (Color){40,200,200,200}, (Color){20,140,200,255});
-    if (ParseRectsFromGroup(tmxPath, "botao3ventilador2", btnRect, 4) > 0 && buttonCount < MAX_BUTTONS)
-        ButtonInit(&buttons[buttonCount++], btnRect[0].x, btnRect[0].y, btnRect[0].width, btnRect[0].height, (Color){200,40,200,200}, (Color){140,20,200,255});
-    if (ParseRectsFromGroup(tmxPath, "botao4barra1", btnRect, 4) > 0 && buttonCount < MAX_BUTTONS)
-        ButtonInit(&buttons[buttonCount++], btnRect[0].x, btnRect[0].y, btnRect[0].width, btnRect[0].height, (Color){80,200,80,200}, (Color){40,140,40,255});
-    if (ParseRectsFromGroup(tmxPath, "botao5barra2", btnRect, 4) > 0 && buttonCount < MAX_BUTTONS)
-        ButtonInit(&buttons[buttonCount++], btnRect[0].x, btnRect[0].y, btnRect[0].width, btnRect[0].height, (Color){200,120,80,200}, (Color){140,60,40,255});
+    char buttonNamesLower[MAX_BUTTONS][BUTTON_NAME_LEN] = {{0}};
+    ButtonSpriteSet buttonSprites = {0};
+    buttonSprites.blue  = LoadTextureIfExists("assets/map/buttons/pixil-layer-bluebutton.png");
+    buttonSprites.red   = LoadTextureIfExists("assets/map/buttons/pixil-layer-redbutton.png");
+    buttonSprites.white = LoadTextureIfExists("assets/map/buttons/pixil-layer-whitebutton.png");
+    buttonSprites.brown = LoadTextureIfExists("assets/map/buttons/pixil-layer-brownbutton.png");
+
+    Rectangle btnRect[8];
+    char buttonGroupNames[MAX_BUTTONS][BUTTON_NAME_LEN] = {{0}};
+    int buttonGroupCount = CollectButtonGroupNames(tmxPath, buttonGroupNames, MAX_BUTTONS);
+    for (int g = 0; g < buttonGroupCount && buttonCount < MAX_BUTTONS; ++g) {
+        int rectsFound = ParseRectsFromGroup(tmxPath, buttonGroupNames[g], btnRect, (int)(sizeof(btnRect)/sizeof(btnRect[0])));
+        if (rectsFound <= 0) continue;
+        char lowerName[BUTTON_NAME_LEN];
+        ToLowerCopy(buttonGroupNames[g], lowerName, sizeof(lowerName));
+        Color colorUp, colorDown;
+        DetermineButtonColors(lowerName, &colorUp, &colorDown);
+        const Texture2D* sprite = PickButtonSprite(lowerName, &buttonSprites);
+        for (int r = 0; r < rectsFound && buttonCount < MAX_BUTTONS; ++r) {
+            Rectangle rect = btnRect[r];
+            ButtonInit(&buttons[buttonCount], rect.x, rect.y, rect.width, rect.height, colorUp, colorDown);
+            if (sprite) ButtonSetSprites(&buttons[buttonCount], sprite, NULL);
+            strncpy(buttonNamesLower[buttonCount], lowerName, BUTTON_NAME_LEN - 1);
+            buttonNamesLower[buttonCount][BUTTON_NAME_LEN - 1] = '\0';
+            buttonCount++;
+        }
+    }
+
+    if (buttonCount == 0) {
+        const char* fallbackGroups[] = {
+            "botao1ventilador1",
+            "botao2ventilador1",
+            "botao3ventilador2",
+            "botao4barra1",
+            "botao5barra2"
+        };
+        const int fallbackTotal = (int)(sizeof(fallbackGroups)/sizeof(fallbackGroups[0]));
+        for (int i = 0; i < fallbackTotal && buttonCount < MAX_BUTTONS; ++i) {
+            int rectsFound = ParseRectsFromGroup(tmxPath, fallbackGroups[i], btnRect, (int)(sizeof(btnRect)/sizeof(btnRect[0])));
+            if (rectsFound <= 0) continue;
+            char lowerName[BUTTON_NAME_LEN];
+            ToLowerCopy(fallbackGroups[i], lowerName, sizeof(lowerName));
+            Color colorUp, colorDown;
+            DetermineButtonColors(lowerName, &colorUp, &colorDown);
+            const Texture2D* sprite = PickButtonSprite(lowerName, &buttonSprites);
+            Rectangle rect = btnRect[0];
+            ButtonInit(&buttons[buttonCount], rect.x, rect.y, rect.width, rect.height, colorUp, colorDown);
+            if (sprite) ButtonSetSprites(&buttons[buttonCount], sprite, NULL);
+            strncpy(buttonNamesLower[buttonCount], lowerName, BUTTON_NAME_LEN - 1);
+            buttonNamesLower[buttonCount][BUTTON_NAME_LEN - 1] = '\0';
+            buttonCount++;
+        }
+    }
 
     Fan fans1[MAX_FANS]; int fans1Count = 0;
     Rectangle fanRects[8];
@@ -295,23 +435,32 @@ bool Fase2(void) {
     for (int i=0;i<fans1Count;i++) fan1Draw[i] = AcquireSpriteForRect(fans1[i].rect, fanSpriteRects, fanSpriteUsed, fanSpriteCount);
     for (int i=0;i<fans2Count;i++) fan2Draw[i] = AcquireSpriteForRect(fans2[i].rect, fanSpriteRects, fanSpriteUsed, fanSpriteCount);
 
+    Texture2D barraFallbackTex = LoadTextureIfExists("assets/map/barras/barragorda.png");
+    if (barraFallbackTex.id == 0) barraFallbackTex = LoadTextureIfExists("assets/map/barras/branca.png");
+    Texture2D barra1Tex = LoadTextureIfExists("assets/map/barras/Barra1_Fase2.png");
+    Texture2D barra2Tex = LoadTextureIfExists("assets/map/barras/Barra2_Fase2.png");
+
     Platform platforms[MAX_PLATFORMS]; int platformCount = 0;
+    Texture2D* platformTexRefs[MAX_PLATFORMS] = {0};
+    char platformControlTokens[MAX_PLATFORMS][16] = {{0}};
     Rectangle platR[4];
+    Rectangle rangeRect[4];
     if (ParseRectsFromGroup(tmxPath, "barra1", platR, 4) > 0 && platformCount < MAX_PLATFORMS) {
-        PlatformInit(&platforms[platformCount], platR[0], platR[0], 2.0f);
-        platforms[platformCount].area.y -= 120;
-        platforms[platformCount].area.height += 120;
+        Rectangle area = platR[0];
+        if (ParseRectsFromGroup(tmxPath, "barra1range", rangeRect, 4) > 0) area = rangeRect[0];
+        PlatformInit(&platforms[platformCount], platR[0], area, 2.0f);
+        strncpy(platformControlTokens[platformCount], "botao4barra1_branco", sizeof(platformControlTokens[platformCount]) - 1);
+        platformTexRefs[platformCount] = &barra1Tex;
         platformCount++;
     }
     if (ParseRectsFromGroup(tmxPath, "barra2", platR, 4) > 0 && platformCount < MAX_PLATFORMS) {
-        PlatformInit(&platforms[platformCount], platR[0], platR[0], 2.0f);
-        platforms[platformCount].area.y -= 120;
-        platforms[platformCount].area.height += 120;
+        Rectangle area = platR[0];
+        if (ParseRectsFromGroup(tmxPath, "barra2range", rangeRect, 4) > 0) area = rangeRect[0];
+        PlatformInit(&platforms[platformCount], platR[0], area, 2.0f);
+        strncpy(platformControlTokens[platformCount], "botao5barra2_vermelho", sizeof(platformControlTokens[platformCount]) - 1);
+        platformTexRefs[platformCount] = &barra2Tex;
         platformCount++;
     }
-
-    Texture2D barraTex = LoadTextureIfExists("assets/map/barras/barragorda.png");
-    if (barraTex.id == 0) barraTex = LoadTextureIfExists("assets/map/barras/branca.png");
 
     Texture2D fanOffTex = LoadTextureIfExists("assets/map/vento/desligado.png");
     Texture2D fanOnFrames[8]; int fanOnCount = 0;
@@ -402,15 +551,13 @@ bool Fase2(void) {
             buttonStates[i] = ButtonUpdate(&buttons[i], &earthboy, &fireboy, &watergirl);
         }
 
-        int platformButtons[MAX_PLATFORMS] = {3,4};
         for (int i=0;i<platformCount;i++) {
             Platform* plat = &platforms[i];
             float targetDown = plat->area.y + plat->area.height - plat->rect.height;
             float targetUp = plat->area.y;
             bool active = false;
-            if (i < (int)(sizeof(platformButtons)/sizeof(platformButtons[0]))) {
-                int idx = platformButtons[i];
-                if (idx >=0 && idx < buttonCount) active = buttonStates[idx];
+            if (platformControlTokens[i][0]) {
+                active = AnyButtonPressedWithToken(buttonStates, buttonNamesLower, buttonCount, platformControlTokens[i]);
             }
             if (active) plat->rect.y = moveTowards(plat->rect.y, targetUp, plat->speed);
             else        plat->rect.y = moveTowards(plat->rect.y, targetDown, plat->speed);
@@ -420,8 +567,8 @@ bool Fase2(void) {
             if (plat->rect.y > maxY) plat->rect.y = maxY;
         }
 
-        bool fan1Active = ((buttonCount > 0 && buttonStates[0]) || (buttonCount > 1 && buttonStates[1]));
-        bool fan2Active = (buttonCount > 2 && buttonStates[2]);
+        bool fan1Active = AnyButtonPressedWithToken(buttonStates, buttonNamesLower, buttonCount, "ventilador1");
+        bool fan2Active = AnyButtonPressedWithToken(buttonStates, buttonNamesLower, buttonCount, "botao3ventilador2_marrom");
 
         if (fanOnCount > 0) {
             fanAnimTimer += dt;
@@ -529,7 +676,13 @@ bool Fase2(void) {
             }
         }
 
-        for (int i=0;i<platformCount;i++) DrawPlatformTexture(barraTex, platforms[i].rect);
+        for (int i=0;i<platformCount;i++) {
+            Texture2D useTex = barraFallbackTex;
+            if (platformTexRefs[i] && platformTexRefs[i]->id != 0) useTex = *platformTexRefs[i];
+            DrawPlatformTexture(useTex, platforms[i].rect);
+        }
+
+        for (int i=0;i<buttonCount;i++) ButtonDraw(&buttons[i]);
 
         for (int i=0;i<fans1Count;i++) DrawFanSprite(fan1Draw[i], fan1Active, fanOnFrames, fanOnCount, fanOffTex, fanAnimFrame);
         for (int i=0;i<fans2Count;i++) DrawFanSprite(fan2Draw[i], fan2Active, fanOnFrames, fanOnCount, fanOffTex, fan2AnimFrame);
@@ -564,7 +717,13 @@ bool Fase2(void) {
     }
 
     UnloadTexture(mapTexture);
-    if (barraTex.id) UnloadTexture(barraTex);
+    if (barra1Tex.id) UnloadTexture(barra1Tex);
+    if (barra2Tex.id) UnloadTexture(barra2Tex);
+    if (barraFallbackTex.id) UnloadTexture(barraFallbackTex);
+    if (buttonSprites.blue.id) UnloadTexture(buttonSprites.blue);
+    if (buttonSprites.red.id) UnloadTexture(buttonSprites.red);
+    if (buttonSprites.white.id) UnloadTexture(buttonSprites.white);
+    if (buttonSprites.brown.id) UnloadTexture(buttonSprites.brown);
     if (fanOffTex.id) UnloadTexture(fanOffTex);
     for (int i=0;i<fanOnCount;i++) if (fanOnFrames[i].id) UnloadTexture(fanOnFrames[i]);
     UnloadLakeSet(&animAgua);
