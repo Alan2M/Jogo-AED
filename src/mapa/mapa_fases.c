@@ -175,10 +175,10 @@ bool MostrarMapaFases(void) {
 
         // --- Navegação entre fases ---
         if (!confirmExit && IsKeyPressed(KEY_LEFT)) {
-            faseSelecionada = NavegarPara(fases, faseSelecionada, true);
+            faseSelecionada = NavegarPara(fases, faseSelecionada, false);
         }
         if (!confirmExit && IsKeyPressed(KEY_RIGHT)) {
-            faseSelecionada = NavegarPara(fases, faseSelecionada, false);
+            faseSelecionada = NavegarPara(fases, faseSelecionada, true);
         }
 
         // --- Botão: Desbloquear todas as fases (clique ou tecla U) ---
