@@ -673,7 +673,7 @@ bool Fase5(void) {
         bool tempoPressed = AnyButtonPressedWithToken(buttons, buttonCount, "botao_tempo");
         if (tempoPressed && !tempoButtonLatched) {
             tempoButtonLatched = true;
-            tempoButtonTimer = 10.0f; // mantém elevador baixo por 10s
+            tempoButtonTimer = 20.0f; // mantém elevador 2 baixo por 20s
             barra3Timer = 20.0f;
         }
         if (tempoButtonTimer > 0.0f) {
