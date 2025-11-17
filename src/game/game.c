@@ -1,3 +1,6 @@
+#include <stdbool.h>
+#include <string.h>
+
 static int gReturnToMenu = 0;
 static char gPlayerName[64] = {0};
 

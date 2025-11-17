@@ -1,6 +1,17 @@
-CC      := gcc
-CFLAGS  := -std=c17 -Wall -I C:/raylib/include
-LDFLAGS := -L C:/raylib/lib -lraylib -lopengl32 -lgdi32 -lwinmm
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Linux)
+    CC := /mnt/c/w64devkit/bin/gcc.exe
+    RAYLIB_INCLUDE := C:/raylib/include
+    RAYLIB_LIB := C:/raylib/lib
+else
+    CC := gcc
+    RAYLIB_INCLUDE := C:/raylib/include
+    RAYLIB_LIB := C:/raylib/lib
+endif
+
+CFLAGS  := -std=c17 -Wall -I $(RAYLIB_INCLUDE)
+LDFLAGS := -L $(RAYLIB_LIB) -lraylib -lopengl32 -lgdi32 -lwinmm
 
 SRCS := $(shell find src -name "*.c")
 OBJS := $(patsubst %.c,%.o,$(SRCS))
