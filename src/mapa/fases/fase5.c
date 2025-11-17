@@ -674,7 +674,7 @@ bool Fase5(void) {
         if (tempoPressed && !tempoButtonLatched) {
             tempoButtonLatched = true;
             tempoButtonTimer = 30.0f; // mantém elevador 2 baixo por 30s
-            barra3Timer = 30.0f;
+            barra3Timer = 15.0f;
         }
         if (tempoButtonTimer > 0.0f) {
             tempoButtonTimer -= frameDt;
