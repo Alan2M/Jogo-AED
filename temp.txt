@@ -221,10 +221,10 @@ static bool CheckDoor(const Rectangle* door, const Player* p) {
 }
 
 bool Fase4(void) {
-    const char* tmxPath = "assets/maps/fase3/fase33.tmx";
-    Texture2D mapTexture = LoadTexture("assets/maps/fase3/fase33.png");
+    const char* tmxPath = "assets/maps/fase4/fase4.tmx";
+    Texture2D mapTexture = LoadTexture("assets/maps/fase4/fase4.png");
     if (mapTexture.id == 0) {
-        printf("❌ Erro ao carregar assets/maps/fase3/fase33.png\n");
+        printf("❌ Erro ao carregar assets/maps/fase4/fase4.png\n");
         return false;
     }
 
@@ -344,5 +344,6 @@ bool Fase4(void) {
     camera.target = (Vector2){ mapTexture.width/2.0f, mapTexture.height/2.0f };
     camera.offset = (Vector2){ GetScreenWidth()/2.0f, GetScreenHeight()/2.0f };
     camera.zoom = 1.0f;
+
 
 

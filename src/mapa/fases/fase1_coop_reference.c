@@ -248,10 +248,10 @@ static void UnloadLakeSet(LakeAnimFrames* s) {
 }
 
 bool Fase3(void) {
-    const char* tmxPath = "assets/maps/fase1/fase11.tmx";
-    Texture2D mapTexture = LoadTexture("assets/maps/fase1/fase11.png");
+    const char* tmxPath = "assets/maps/fase1/fase1.tmx";
+    Texture2D mapTexture = LoadTexture("assets/maps/fase1/fase1.png");
     if (mapTexture.id == 0) {
-        printf("❌ Erro ao carregar assets/maps/fase1/fase11.png\n");
+        printf("❌ Erro ao carregar assets/maps/fase1/fase1.png\n");
         return false;
     }
 

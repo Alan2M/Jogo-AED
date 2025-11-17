@@ -80,6 +80,7 @@ static NoFase* CriarArvoreFases(NoFase** fases) {
 
     Conectar(fases[1], fases[2], fases[3]);
     Conectar(fases[2], fases[4], fases[5]);
+    if (fases[3]) { fases[3]->esquerda = NULL; fases[3]->direita = NULL; }
 
     return fases[1];
 }
@@ -169,10 +170,10 @@ bool MostrarMapaFases(void) {
     while (!WindowShouldClose() && !sairDoMapa) {
 
         // --- Navegação entre fases ---
-        if (!confirmExit && IsKeyPressed(KEY_RIGHT)) {
+        if (!confirmExit && IsKeyPressed(KEY_LEFT)) {
             faseSelecionada = NavegarPara(fases, faseSelecionada, true);
         }
-        if (!confirmExit && IsKeyPressed(KEY_LEFT)) {
+        if (!confirmExit && IsKeyPressed(KEY_RIGHT)) {
             faseSelecionada = NavegarPara(fases, faseSelecionada, false);
         }
 
@@ -205,11 +206,11 @@ bool MostrarMapaFases(void) {
                 bool concluida = false;
                 // Abre a fase correspondente
                 switch (atual->id) {
-                    case 1: concluida = Fase1(); break;
-                    case 2: concluida = Fase2(); break;
-                    case 3: concluida = Fase3(); break;
-                    case 4: concluida = Fase4(); break;
-                    case 5: concluida = Fase5(); break;
+                    case 1: concluida = Fase1(); break;       // Raiz
+                    case 2: concluida = Fase2(); break;       // Raiz->Esquerda (2ª fase)
+                    case 3: concluida = Fase3(); break;       // Raiz->Direita (3ª fase)
+                    case 4: concluida = Fase5(); break;       // Raiz->Esq->Esq (4ª fase)
+                    case 5: concluida = Fase4(); break;       // Raiz->Esq->Dir (5ª fase)
                 }
 
                 if (concluida) {
@@ -324,4 +325,3 @@ bool MostrarMapaFases(void) {
 void ResetarProgressoFases(void) {
     gProgressMask = 0;
 }
-
