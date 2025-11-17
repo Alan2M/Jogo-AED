@@ -4,6 +4,13 @@
 #include "raylib.h"
 #include <stdbool.h>
 
+// Visual size of the sprites stays the same, but the hitbox is slightly narrower
+// to avoid players looking like they're hovering when reaching block edges.
+#define PLAYER_VISUAL_WIDTH 60.0f
+#define PLAYER_VISUAL_HEIGHT 60.0f
+#define PLAYER_HITBOX_WIDTH 44.0f
+#define PLAYER_HITBOX_HEIGHT 60.0f
+
 typedef struct Player {
     Rectangle rect;
     Vector2 velocity;

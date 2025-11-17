@@ -1,7 +1,7 @@
 #include "player.h"
 
 void InitEarthboy(Player *p) {
-    p->rect = (Rectangle){100, 300, 60, 60};
+    p->rect = (Rectangle){100, 300, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT};
     p->velocity = (Vector2){0, 0};
     p->isJumping = false;
     p->facingRight = true;
@@ -27,7 +27,7 @@ void InitEarthboy(Player *p) {
 
 // --- FIREBOY ---
 void InitFireboy(Player *p) {
-    p->rect = (Rectangle){200, 700, 60, 60};
+    p->rect = (Rectangle){200, 700, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT};
     p->velocity = (Vector2){0, 0};
     p->isJumping = false;
     p->facingRight = true;
@@ -56,7 +56,7 @@ void InitFireboy(Player *p) {
 
 // --- WATERGIRL ---
 void InitWatergirl(Player *p) {
-    p->rect = (Rectangle){400, 700, 60, 60};
+    p->rect = (Rectangle){400, 700, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT};
     p->velocity = (Vector2){0, 0};
     p->isJumping = false;
     p->facingRight = true;
@@ -158,12 +158,14 @@ void DrawPlayer(Player p) {
 
     // Mantém proporção do sprite dentro do retângulo do jogador,
     // alinhando pelos pés (base) e centralizando na largura.
+    const float visualWidth = PLAYER_VISUAL_WIDTH;
+    const float visualHeight = PLAYER_VISUAL_HEIGHT;
     float aspect = (float)frame.width / (float)frame.height;
-    float wFromH = p.rect.height * aspect;
-    float hFromW = p.rect.width / aspect;
+    float wFromH = visualHeight * aspect;
+    float hFromW = visualWidth / aspect;
     float dw, dh;
-    if (wFromH <= p.rect.width) { dw = wFromH; dh = p.rect.height; }
-    else { dw = p.rect.width; dh = hFromW; }
+    if (wFromH <= visualWidth) { dw = wFromH; dh = visualHeight; }
+    else { dw = visualWidth; dh = hFromW; }
     float dx = p.rect.x + (p.rect.width - dw) * 0.5f;
     float dy = p.rect.y + (p.rect.height - dh);
     Rectangle dest = { dx, dy, dw, dh };
