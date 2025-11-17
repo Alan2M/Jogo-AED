@@ -120,11 +120,15 @@ void MostrarInstrucoes(void) {
         ClearBackground(BLACK);
 
         DrawText("INSTRUÇÕES:", 100, 100, 50, YELLOW);
-        DrawText("Use as setas ou A/D para mover", 120, 200, 30, WHITE);
-        DrawText("Espaço para pular", 120, 250, 30, WHITE);
+        DrawText("Watergirl:", 120, 200, 30, WHITE);
+        DrawText("Use W/A/D para mover", 120, 250, 30, WHITE);
+        DrawText("Fireboy:", 120, 400, 30, WHITE);
+        DrawText("Use as setas para mover", 120, 450, 30, WHITE);
+        DrawText("Earthboy:", 120, 600, 30, WHITE);
+        DrawText("Use I/J/L para mover", 120, 650, 30, WHITE);
 
         if ((int)(GetTime() * 2) % 2 == 0)
-            DrawText("Pressione ESC para voltar", 120, 350, 30, GRAY);
+            DrawText("Pressione ESC para voltar", 120, 800, 30, GRAY);
 
         EndDrawing();
 
