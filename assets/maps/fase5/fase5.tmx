@@ -186,7 +186,61 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="15" name="colisao">
+ <group id="16" name="liquidos">
+  <group id="19" name="terra">
+   <objectgroup id="26" name="terrameio">
+    <object id="95" x="972" y="702" width="27" height="27"/>
+    <object id="96" x="810" y="918" width="270" height="27"/>
+   </objectgroup>
+   <objectgroup id="27" name="terradireita">
+    <object id="94" x="999" y="702" width="27" height="27"/>
+   </objectgroup>
+   <objectgroup id="28" name="terraesquerda">
+    <object id="93" x="945" y="702" width="27" height="27"/>
+   </objectgroup>
+  </group>
+  <group id="17" name="agua">
+   <objectgroup id="20" name="aguadireita">
+    <object id="91" x="1458" y="675" width="27" height="27"/>
+   </objectgroup>
+   <objectgroup id="21" name="aguameio">
+    <object id="88" x="1107" y="918" width="270" height="27"/>
+    <object id="89" x="1485" y="918" width="243" height="27"/>
+    <object id="90" x="1404" y="675" width="54" height="27"/>
+   </objectgroup>
+   <objectgroup id="22" name="aguaesquerda">
+    <object id="92" x="1377" y="675" width="27" height="27"/>
+   </objectgroup>
+  </group>
+  <group id="18" name="fogo">
+   <objectgroup id="23" name="fogomeio">
+    <object id="97" x="189" y="918" width="595" height="23.3333"/>
+   </objectgroup>
+  </group>
+ </group>
+ <group id="6" name="spawn" visible="0">
+  <objectgroup id="7" name="spawnAgua">
+   <object id="30" x="864" y="351" width="54" height="81"/>
+  </objectgroup>
+  <objectgroup id="8" name="spawnFogo">
+   <object id="31" x="918" y="351" width="54" height="81"/>
+  </objectgroup>
+  <objectgroup id="9" name="spawnTerra">
+   <object id="32" x="972" y="351" width="54" height="81"/>
+  </objectgroup>
+ </group>
+ <group id="10" name="portas" visible="0">
+  <objectgroup id="11" name="portaFogo">
+   <object id="35" x="1404" y="756" width="81" height="108"/>
+  </objectgroup>
+  <objectgroup id="12" name="portaAgua">
+   <object id="34" x="999" y="756" width="81" height="108"/>
+  </objectgroup>
+  <objectgroup id="13" name="portaTerra">
+   <object id="33" x="189" y="162" width="81" height="108"/>
+  </objectgroup>
+ </group>
+ <objectgroup id="15" name="colisao" visible="0" locked="1">
   <object id="40" x="783" y="432" width="27" height="513"/>
   <object id="41" x="810" y="621" width="27" height="27"/>
   <object id="42" x="999" y="567" width="108" height="27"/>
@@ -232,58 +286,4 @@
   <object id="86" x="1269" y="621" width="27" height="27"/>
   <object id="87" x="1188" y="594" width="27" height="27"/>
  </objectgroup>
- <group id="16" name="liquidos">
-  <group id="19" name="terra">
-   <objectgroup id="26" name="terrameio">
-    <object id="95" x="972" y="702" width="27" height="27"/>
-    <object id="96" x="810" y="918" width="270" height="27"/>
-   </objectgroup>
-   <objectgroup id="27" name="terradireita">
-    <object id="94" x="999" y="702" width="27" height="27"/>
-   </objectgroup>
-   <objectgroup id="28" name="terraesquerda">
-    <object id="93" x="945" y="702" width="27" height="27"/>
-   </objectgroup>
-  </group>
-  <group id="17" name="agua">
-   <objectgroup id="20" name="aguadireita">
-    <object id="91" x="1458" y="675" width="27" height="27"/>
-   </objectgroup>
-   <objectgroup id="21" name="aguameio">
-    <object id="88" x="1107" y="918" width="270" height="27"/>
-    <object id="89" x="1485" y="918" width="243" height="27"/>
-    <object id="90" x="1404" y="675" width="54" height="27"/>
-   </objectgroup>
-   <objectgroup id="22" name="aguaesquerda">
-    <object id="92" x="1377" y="675" width="27" height="27"/>
-   </objectgroup>
-  </group>
-  <group id="18" name="fogo">
-   <objectgroup id="23" name="fogomeio">
-    <object id="97" x="189" y="918" width="595" height="23.3333"/>
-   </objectgroup>
-  </group>
- </group>
- <group id="6" name="spawn">
-  <objectgroup id="7" name="spawnAgua">
-   <object id="30" x="864" y="351" width="54" height="81"/>
-  </objectgroup>
-  <objectgroup id="8" name="spawnFogo">
-   <object id="31" x="918" y="351" width="54" height="81"/>
-  </objectgroup>
-  <objectgroup id="9" name="spawnTerra">
-   <object id="32" x="972" y="351" width="54" height="81"/>
-  </objectgroup>
- </group>
- <group id="10" name="portas">
-  <objectgroup id="11" name="portaFogo">
-   <object id="35" x="1404" y="756" width="81" height="108"/>
-  </objectgroup>
-  <objectgroup id="12" name="portaAgua">
-   <object id="34" x="999" y="756" width="81" height="108"/>
-  </objectgroup>
-  <objectgroup id="13" name="portaTerra">
-   <object id="33" x="189" y="162" width="81" height="108"/>
-  </objectgroup>
- </group>
 </map>

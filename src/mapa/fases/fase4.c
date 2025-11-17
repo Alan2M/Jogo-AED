@@ -387,9 +387,9 @@ bool Fase4(void) {
     InitFireboy(&fireboy);
     InitWatergirl(&watergirl);
 
-    earthboy.rect = (Rectangle){300, 700, 45, 50};
-    fireboy.rect  = (Rectangle){400, 700, 45, 50};
-    watergirl.rect= (Rectangle){500, 700, 45, 50};
+    earthboy.rect = (Rectangle){300, 700, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT};
+    fireboy.rect  = (Rectangle){400, 700, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT};
+    watergirl.rect= (Rectangle){500, 700, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT};
     Vector2 spawnEarth = (Vector2){ earthboy.rect.x, earthboy.rect.y };
     Vector2 spawnFire  = (Vector2){ fireboy.rect.x,  fireboy.rect.y };
     Vector2 spawnWater = (Vector2){ watergirl.rect.x, watergirl.rect.y };

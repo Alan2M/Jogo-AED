@@ -224,9 +224,9 @@ bool Fase1(void) {
     InitFireboy(&fireboy);
     InitWatergirl(&watergirl);
 
-    earthboy.rect = (Rectangle){ spawnEarth.x, spawnEarth.y, 45, 50 };
-    fireboy.rect  = (Rectangle){ spawnFire.x,  spawnFire.y,  45, 50 };
-    watergirl.rect= (Rectangle){ spawnWater.x, spawnWater.y, 45, 50 };
+    earthboy.rect = (Rectangle){ spawnEarth.x, spawnEarth.y, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT };
+    fireboy.rect  = (Rectangle){ spawnFire.x,  spawnFire.y,  PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT };
+    watergirl.rect= (Rectangle){ spawnWater.x, spawnWater.y, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT };
 
     Camera2D camera = {0};
     camera.target = (Vector2){ mapTexture.width/2.0f, mapTexture.height/2.0f };
