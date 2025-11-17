@@ -839,6 +839,10 @@ bool Fase5(void) {
             }
         }
 
+        bool earthAtDoor = PlayerAtDoor(&earthboy, doorTerra);
+        bool fireAtDoor  = PlayerAtDoor(&fireboy,  doorFogo);
+        bool waterAtDoor = PlayerAtDoor(&watergirl, doorAgua);
+
         // Desenho
         BeginDrawing(); ClearBackground(BLACK); BeginMode2D(cam);
         DrawTexture(mapTex, 0, 0, WHITE);
