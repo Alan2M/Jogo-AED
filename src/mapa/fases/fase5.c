@@ -510,9 +510,9 @@ bool Fase5(void) {
         }
 
         Rectangle ground = (Rectangle){0, mapTex.height, mapTex.width, 200};
-        UpdatePlayer(&earthboy, ground, KEY_A, KEY_D, KEY_W);
+        UpdatePlayer(&earthboy, ground, KEY_J, KEY_L, KEY_I);
         UpdatePlayer(&fireboy,  ground, KEY_LEFT, KEY_RIGHT, KEY_UP);
-        UpdatePlayer(&watergirl,ground, KEY_J, KEY_L, KEY_I);
+        UpdatePlayer(&watergirl,ground, KEY_A, KEY_D, KEY_W);
 
         Player* P[3] = {&earthboy,&fireboy,&watergirl};
         struct { Player* pl; int keyLeft; int keyRight; } controls[3] = {

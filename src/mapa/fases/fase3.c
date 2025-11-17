@@ -93,9 +93,9 @@ bool Fase3(void) {
             if (pr == PAUSE_TO_MENU) { Game_SetReturnToMenu(true); completed = false; break; }
         }
 
-        UpdatePlayer(&watergirl, (Rectangle){0,mapTexture.height,mapTexture.width,200}, KEY_J, KEY_L, KEY_I);
+        UpdatePlayer(&watergirl, (Rectangle){0,mapTexture.height,mapTexture.width,200}, KEY_A, KEY_D, KEY_W);
         UpdatePlayer(&fireboy,   (Rectangle){0,mapTexture.height,mapTexture.width,200}, KEY_LEFT, KEY_RIGHT, KEY_UP);
-        UpdatePlayer(&earthboy,  (Rectangle){0,mapTexture.height,mapTexture.width,200}, KEY_A, KEY_D, KEY_W);
+        UpdatePlayer(&earthboy,  (Rectangle){0,mapTexture.height,mapTexture.width,200}, KEY_J, KEY_L, KEY_I);
 
         Player* players[3] = { &earthboy, &fireboy, &watergirl };
         PhaseResolvePlayersVsWorld(players, 3, colisoes, totalColisoes, PHASE_STEP_HEIGHT);
