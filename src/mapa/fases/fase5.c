@@ -390,6 +390,46 @@ static void ResolveCoOpBoxVsWorld(CoOpBox* box, const Colisao* col, int colCount
     }
 }
 
+static void ResolveCoOpBoxVsRect(CoOpBox* box, Rectangle bloco) {
+    if (bloco.width <= 0 || bloco.height <= 0) return;
+    if (box->rect.width <= 0 || box->rect.height <= 0) return;
+    if (!CheckCollisionRecs(box->rect, bloco)) return;
+    float dx = (box->rect.x + box->rect.width*0.5f) - (bloco.x + bloco.width*0.5f);
+    float dy = (box->rect.y + box->rect.height*0.5f) - (bloco.y + bloco.height*0.5f);
+    float overlapX = (box->rect.width*0.5f + bloco.width*0.5f) - fabsf(dx);
+    float overlapY = (box->rect.height*0.5f + bloco.height*0.5f) - fabsf(dy);
+    if (overlapX <= 0 || overlapY <= 0) return;
+    if (overlapX < overlapY) {
+        if (dx > 0) box->rect.x += overlapX;
+        else        box->rect.x -= overlapX;
+        box->velX = 0;
+    } else {
+        if (dy > 0) box->rect.y += overlapY;
+        else        box->rect.y -= overlapY;
+    }
+}
+
+static void HandleCoOpBoxOnPlatform(CoOpBox* box, Rectangle plat, float deltaY) {
+    if (plat.width <= 0 || plat.height <= 0) return;
+    if (box->rect.width <= 0 || box->rect.height <= 0) return;
+    if (!CheckCollisionRecs(box->rect, plat)) return;
+    float bBottom = box->rect.y + box->rect.height;
+    if (bBottom <= plat.y + 12.0f) {
+        box->rect.y = plat.y - box->rect.height;
+        box->rect.y += deltaY;
+    } else if (box->rect.y <= plat.y + plat.height && box->rect.y >= plat.y + plat.height - 12.0f) {
+        box->rect.y = plat.y + plat.height;
+    }
+}
+
+static bool BoxTouchesAnyLake(const CoOpBox* box, const LakeSegment* segs, int segCount) {
+    if (box->rect.width <= 0 || box->rect.height <= 0) return false;
+    for (int i = 0; i < segCount; ++i) {
+        if (CheckCollisionRecs(box->rect, segs[i].rect)) return true;
+    }
+    return false;
+}
+
 // Plataforma simples (barra)
 typedef struct Platform { Rectangle rect, area; float startY, speed; } Platform;
 static void PlatformInit(Platform* p, Rectangle rect, Rectangle area, float speed) { p->rect=rect; p->area=area; p->startY=rect.y; p->speed=speed; }
@@ -555,7 +595,7 @@ bool Fase5(void) {
         c2 = ParseRectsFromGroup(tmx, "Area_Barra3", r2, 2);
         if (c1>0 && c2>0) {
             PlatformInit(&barra3, r1[0], r2[0], 2.0f);
-            barra3.rect.y = barra3.area.y + barra3.area.height - barra3.rect.height;
+            barra3.rect.y = barra3.area.y;
             barra3.startY = barra3.rect.y;
         }
         c1 = ParseRectsFromGroup(tmx, "Barra1_Movel", r1, 2);
@@ -668,10 +708,10 @@ bool Fase5(void) {
             if (elev2.rect.y>maxY) elev2.rect.y=maxY;
         }
         if (barra3.area.height>0 && barra3.rect.height>0) {
-            float targetOpen = barra3.area.y;
-            float targetClosed = barra3.startY;
+            float targetDown = barra3.area.y + barra3.area.height - barra3.rect.height;
+            float targetUp = barra3.startY;
             bool active = barra3Timer > 0.0f;
-            float target = active ? targetOpen : targetClosed;
+            float target = active ? targetDown : targetUp;
             barra3.rect.y = moveTowards(barra3.rect.y, target, barra3.speed);
             float minY=barra3.area.y, maxY=barra3.area.y+barra3.area.height-barra3.rect.height;
             if (barra3.rect.y<minY) barra3.rect.y=minY;
@@ -702,6 +742,7 @@ bool Fase5(void) {
 
         for (int b=0;b<coopBoxCount;b++) {
             CoOpBox* box = &coopBoxes[b];
+            if (box->rect.width <= 0 || box->rect.height <= 0) continue;
             int pushLeft = 0, pushRight = 0;
             for (int i=0;i<3;i++) {
                 Player* pl = controls[i].pl;
@@ -721,7 +762,21 @@ bool Fase5(void) {
             if (box->rect.x > maxX) { box->rect.x = maxX; box->velX = 0; }
             ResolveCoOpBoxVsWorld(box, col, nCol);
             float deltaX = box->rect.x - prevX;
+            ResolveCoOpBoxVsRect(box, elev.rect);
+            ResolveCoOpBoxVsRect(box, elev2.rect);
+            ResolveCoOpBoxVsRect(box, barra3.rect);
+            ResolveCoOpBoxVsRect(box, barraM.rect);
+            HandleCoOpBoxOnPlatform(box, elev.rect, elevDY);
+            HandleCoOpBoxOnPlatform(box, elev2.rect, elev2DY);
+            HandleCoOpBoxOnPlatform(box, barra3.rect, barra3DY);
+            HandleCoOpBoxOnPlatform(box, barraM.rect, barraDY);
             for (int i=0;i<3;i++) ResolvePlayerVsCoOpBox(controls[i].pl, box, deltaX);
+            if (BoxTouchesAnyLake(box, segs, segCount)) {
+                box->rect.width = 0;
+                box->rect.height = 0;
+                box->velX = 0;
+                continue;
+            }
         }
         for (int p=0;p<3;p++) {
             Player* pl=P[p];
@@ -820,8 +875,9 @@ bool Fase5(void) {
         if (barraM.rect.width>0 && barraMovTex.id) DrawTexturePro(barraMovTex,(Rectangle){0,0,(float)barraMovTex.width,(float)barraMovTex.height},barraM.rect,(Vector2){0,0},0.0f,WHITE);
         if (barra3.rect.width>0 && barraMovTex.id) DrawTexturePro(barraMovTex,(Rectangle){0,0,(float)barraMovTex.width,(float)barraMovTex.height},barra3.rect,(Vector2){0,0},0.0f,WHITE);
         for (int b=0; b<coopBoxCount; ++b) {
-            if (coopBoxTex.id) DrawTexturePro(coopBoxTex,(Rectangle){0,0,(float)coopBoxTex.width,(float)coopBoxTex.height},coopBoxes[b].rect,(Vector2){0,0},0.0f,WHITE);
-            else DrawRectangleRec(coopBoxes[b].rect, DARKBROWN);
+        if (coopBoxes[b].rect.width <= 0 || coopBoxes[b].rect.height <= 0) continue;
+        if (coopBoxTex.id) DrawTexturePro(coopBoxTex,(Rectangle){0,0,(float)coopBoxTex.width,(float)coopBoxTex.height},coopBoxes[b].rect,(Vector2){0,0},0.0f,WHITE);
+        else DrawRectangleRec(coopBoxes[b].rect, DARKBROWN);
         }
         // 4) jogadores restantes
         if (!insideOwn[0]) DrawPlayer(earthboy); if (!insideOwn[1]) DrawPlayer(fireboy); if (!insideOwn[2]) DrawPlayer(watergirl);
