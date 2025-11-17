@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="71" height="40" tilewidth="27" tileheight="27" infinite="0" nextlayerid="57" nextobjectid="196">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="71" height="40" tilewidth="27" tileheight="27" infinite="0" nextlayerid="57" nextobjectid="205">
  <tileset firstgid="1" source="Blocos.tsx"/>
  <tileset firstgid="26" source="TileFundo.tsx"/>
  <tileset firstgid="27" source="TileSetLagoAgua.tsx"/>
@@ -252,12 +252,12 @@
    <object id="189" x="1134" y="891" width="27" height="27"/>
   </objectgroup>
  </group>
- <group id="23" name="ventilador" visible="0">
+ <group id="23" name="ventilador">
   <objectgroup id="26" name="ventilador2">
-   <object id="141" x="783" y="270" width="54" height="216"/>
+   <object id="202" x="783" y="270" width="54" height="243"/>
   </objectgroup>
   <objectgroup id="25" name="ventilador1">
-   <object id="135" x="189" y="540" width="54" height="216"/>
+   <object id="200" x="189" y="567" width="54" height="216"/>
   </objectgroup>
  </group>
  <group id="30" name="portas" visible="0">
@@ -348,8 +348,7 @@
  </group>
  <group id="24" name="barras">
   <objectgroup id="56" name="barra1range">
-   <object id="193" x="1512" y="243" width="216" height="27"/>
-   <object id="195" x="1230" y="1264" width="8" height="6"/>
+   <object id="203" x="1620" y="243" width="108" height="135"/>
   </objectgroup>
   <objectgroup id="27" name="barra1">
    <object id="142" x="1620" y="243" width="108" height="27"/>

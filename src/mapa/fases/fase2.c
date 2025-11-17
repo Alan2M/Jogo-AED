@@ -199,6 +199,14 @@ static bool AnyButtonPressedWithToken(const bool* states, char namesLower[][BUTT
     return false;
 }
 
+static bool PlayerInsideOwnLake(const Player* pl, LakeType type, const LakeSegment* segs, int segCount) {
+    for (int i = 0; i < segCount; ++i) {
+        if (segs[i].type != type) continue;
+        if (CheckCollisionRecs(pl->rect, segs[i].rect)) return true;
+    }
+    return false;
+}
+
 static int LoadFramesRange(Texture2D* arr, int max, const char* pattern, int startIdx, int endIdx) {
     int count = 0; bool started = false;
     for (int i = startIdx; i <= endIdx && count < max; ++i) {
@@ -442,23 +450,30 @@ bool Fase2(void) {
 
     Platform platforms[MAX_PLATFORMS]; int platformCount = 0;
     Texture2D* platformTexRefs[MAX_PLATFORMS] = {0};
-    char platformControlTokens[MAX_PLATFORMS][16] = {{0}};
+    char platformControlTokens[MAX_PLATFORMS][32] = {{0}};
+    bool platformMoveDownActive[MAX_PLATFORMS] = { false };
     Rectangle platR[4];
     Rectangle rangeRect[4];
     if (ParseRectsFromGroup(tmxPath, "barra1", platR, 4) > 0 && platformCount < MAX_PLATFORMS) {
         Rectangle area = platR[0];
         if (ParseRectsFromGroup(tmxPath, "barra1range", rangeRect, 4) > 0) area = rangeRect[0];
         PlatformInit(&platforms[platformCount], platR[0], area, 2.0f);
+        platforms[platformCount].rect.y = area.y;
+        platforms[platformCount].startY = area.y;
         strncpy(platformControlTokens[platformCount], "botao4barra1_branco", sizeof(platformControlTokens[platformCount]) - 1);
         platformTexRefs[platformCount] = &barra1Tex;
+        platformMoveDownActive[platformCount] = true;
         platformCount++;
     }
     if (ParseRectsFromGroup(tmxPath, "barra2", platR, 4) > 0 && platformCount < MAX_PLATFORMS) {
         Rectangle area = platR[0];
         if (ParseRectsFromGroup(tmxPath, "barra2range", rangeRect, 4) > 0) area = rangeRect[0];
         PlatformInit(&platforms[platformCount], platR[0], area, 2.0f);
+        platforms[platformCount].rect.y = area.y;
+        platforms[platformCount].startY = area.y;
         strncpy(platformControlTokens[platformCount], "botao5barra2_vermelho", sizeof(platformControlTokens[platformCount]) - 1);
         platformTexRefs[platformCount] = &barra2Tex;
+        platformMoveDownActive[platformCount] = true;
         platformCount++;
     }
 
@@ -559,8 +574,10 @@ bool Fase2(void) {
             if (platformControlTokens[i][0]) {
                 active = AnyButtonPressedWithToken(buttonStates, buttonNamesLower, buttonCount, platformControlTokens[i]);
             }
-            if (active) plat->rect.y = moveTowards(plat->rect.y, targetUp, plat->speed);
-            else        plat->rect.y = moveTowards(plat->rect.y, targetDown, plat->speed);
+            float inactiveTarget = platformMoveDownActive[i] ? targetUp : targetDown;
+            float activeTarget = platformMoveDownActive[i] ? targetDown : targetUp;
+            float target = active ? activeTarget : inactiveTarget;
+            plat->rect.y = moveTowards(plat->rect.y, target, plat->speed);
             float minY = plat->area.y;
             float maxY = plat->area.y + plat->area.height - plat->rect.height;
             if (plat->rect.y < minY) plat->rect.y = minY;
@@ -629,6 +646,13 @@ bool Fase2(void) {
 
         DrawTexture(mapTexture, 0, 0, WHITE);
 
+        Player* drawPlayers[3] = { &earthboy, &fireboy, &watergirl };
+        LakeType playerTypes[3] = { LAKE_EARTH, LAKE_FIRE, LAKE_WATER };
+        bool playerBehindLake[3] = { false };
+        for (int i = 0; i < 3; ++i) {
+            playerBehindLake[i] = PlayerInsideOwnLake(drawPlayers[i], playerTypes[i], lakeSegs, lakeSegCount);
+        }
+
         LakeAnimFrames* sets[4] = { &animAgua, &animFogo, &animTerra, &animAcido };
         for (int s=0;s<4;++s) {
             sets[s]->timer += dt;
@@ -638,41 +662,51 @@ bool Fase2(void) {
             }
         }
 
-        for (int i = 0; i < lakeSegCount; ++i) {
-            const LakeSegment* seg = &lakeSegs[i];
-            const LakeAnimFrames* anim = NULL;
-            switch (seg->type) {
-                case LAKE_WATER: anim = &animAgua; break;
-                case LAKE_FIRE: anim = &animFogo; break;
-                case LAKE_EARTH: anim = &animTerra; break;
-                case LAKE_POISON: anim = &animAcido; break;
-            }
-            Texture2D frame = (Texture2D){0};
-            bool has = false;
-            if (anim) {
-                if (seg->part == PART_LEFT   && anim->leftCount  > 0) { frame = anim->left[ anim->frame % anim->leftCount  ]; has = true; }
-                if (seg->part == PART_MIDDLE && anim->middleCount> 0) { frame = anim->middle[anim->frame % anim->middleCount]; has = true; }
-                if (seg->part == PART_RIGHT  && anim->rightCount > 0) { frame = anim->right[ anim->frame % anim->rightCount ]; has = true; }
-            }
-            if (has && seg->part == PART_MIDDLE) {
-                float tile = seg->rect.height;
-                int tiles = (int)floorf(seg->rect.width / tile);
-                float x = seg->rect.x;
-                for (int t=0;t<tiles;++t) {
-                    Rectangle dst = { x, seg->rect.y, tile, seg->rect.height };
-                    DrawTexturePro(frame, (Rectangle){0,0,(float)frame.width,(float)frame.height}, dst, (Vector2){0,0}, 0.0f, WHITE);
-                    x += tile;
+        for (int pass = 0; pass < 2; ++pass) {
+            if (pass == 1) {
+                for (int i = 0; i < lakeSegCount; ++i) {
+                    const LakeSegment* seg = &lakeSegs[i];
+                    const LakeAnimFrames* anim = NULL;
+                    switch (seg->type) {
+                        case LAKE_WATER: anim = &animAgua; break;
+                        case LAKE_FIRE: anim = &animFogo; break;
+                        case LAKE_EARTH: anim = &animTerra; break;
+                        case LAKE_POISON: anim = &animAcido; break;
+                    }
+                    Texture2D frame = (Texture2D){0};
+                    bool has = false;
+                    if (anim) {
+                        if (seg->part == PART_LEFT   && anim->leftCount  > 0) { frame = anim->left[ anim->frame % anim->leftCount  ]; has = true; }
+                        if (seg->part == PART_MIDDLE && anim->middleCount> 0) { frame = anim->middle[anim->frame % anim->middleCount]; has = true; }
+                        if (seg->part == PART_RIGHT  && anim->rightCount > 0) { frame = anim->right[ anim->frame % anim->rightCount ]; has = true; }
+                    }
+                    if (has && seg->part == PART_MIDDLE) {
+                        float tile = seg->rect.height;
+                        int tiles = (int)floorf(seg->rect.width / tile);
+                        float x = seg->rect.x;
+                        for (int t=0;t<tiles;++t) {
+                            Rectangle dst = { x, seg->rect.y, tile, seg->rect.height };
+                            DrawTexturePro(frame, (Rectangle){0,0,(float)frame.width,(float)frame.height}, dst, (Vector2){0,0}, 0.0f, WHITE);
+                            x += tile;
+                        }
+                        float rest = seg->rect.width - tiles*tile;
+                        if (rest > 0.1f) {
+                            Rectangle dst = { x, seg->rect.y, rest, seg->rect.height };
+                            DrawTexturePro(frame, (Rectangle){0,0,(float)frame.width,(float)frame.height}, dst, (Vector2){0,0}, 0.0f, WHITE);
+                        }
+                    } else if (has) {
+                        DrawTexturePro(frame, (Rectangle){0,0,(float)frame.width,(float)frame.height}, seg->rect, (Vector2){0,0}, 0.0f, WHITE);
+                    } else {
+                        Lake fallback; LakeInit(&fallback, seg->rect.x, seg->rect.y, seg->rect.width, seg->rect.height, seg->type);
+                        LakeDraw(&fallback);
+                    }
                 }
-                float rest = seg->rect.width - tiles*tile;
-                if (rest > 0.1f) {
-                    Rectangle dst = { x, seg->rect.y, rest, seg->rect.height };
-                    DrawTexturePro(frame, (Rectangle){0,0,(float)frame.width,(float)frame.height}, dst, (Vector2){0,0}, 0.0f, WHITE);
+            }
+            for (int i = 0; i < 3; ++i) {
+                bool drawBehind = playerBehindLake[i];
+                if ((pass == 0 && drawBehind) || (pass == 1 && !drawBehind)) {
+                    DrawPlayer(*drawPlayers[i]);
                 }
-            } else if (has) {
-                DrawTexturePro(frame, (Rectangle){0,0,(float)frame.width,(float)frame.height}, seg->rect, (Vector2){0,0}, 0.0f, WHITE);
-            } else {
-                Lake fallback; LakeInit(&fallback, seg->rect.x, seg->rect.y, seg->rect.width, seg->rect.height, seg->type);
-                LakeDraw(&fallback);
             }
         }
 
@@ -694,9 +728,6 @@ bool Fase2(void) {
         DrawRectangleLinesEx(doorFogo, 2, cFire);
         DrawRectangleLinesEx(doorTerra,2, cEarth);
 
-        DrawPlayer(earthboy);
-        DrawPlayer(fireboy);
-        DrawPlayer(watergirl);
 
         if (debug) {
             for (int i=0;i<totalColisoes;i++) DrawRectangleLinesEx(colisoes[i].rect,1,Fade(GREEN,0.5f));
