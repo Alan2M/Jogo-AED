@@ -843,6 +843,7 @@ bool Fase5(void) {
         earthAtDoor = PlayerAtDoor(&earthboy, doorTerra);
         fireAtDoor  = PlayerAtDoor(&fireboy,  doorFogo);
         waterAtDoor = PlayerAtDoor(&watergirl, doorAgua);
+        bool finishedByDoors = earthAtDoor && fireAtDoor && waterAtDoor;
 
         // Desenho
         BeginDrawing(); ClearBackground(BLACK); BeginMode2D(cam);
@@ -908,7 +909,7 @@ bool Fase5(void) {
         if (!insideOwn[0]) DrawPlayer(earthboy); if (!insideOwn[1]) DrawPlayer(fireboy); if (!insideOwn[2]) DrawPlayer(watergirl);
         // 5) chegada
         GoalDraw(&goal);
-        if (earthAtDoor && fireAtDoor && waterAtDoor) { completed = true; EndMode2D(); EndDrawing(); break; }
+        bool goalCompleted = GoalReached(&goal, &earthboy, &fireboy, &watergirl);
         // 6) debug
         if (debug) {
             for (int i=0;i<nCol;i++) DrawRectangleLinesEx(col[i].rect,1,Fade(GREEN,0.5f));
@@ -924,8 +925,17 @@ bool Fase5(void) {
             if (haveVent2) DrawRectangleLinesEx(vent2.rect,1,Fade(SKYBLUE,0.5f));
             DrawText(TextFormat("b1=%d b2=%d b3=%d", p1,p2,p3), 10,10,20,RAYWHITE);
         }
-        if (GoalReached(&goal, &earthboy, &fireboy, &watergirl)) { completed=true; EndMode2D(); EndDrawing(); break; }
-        EndMode2D(); EndDrawing();
+        EndMode2D();
+
+        char timerTxt[32];
+        int min = (int)(elapsed / 60.0f);
+        float sec = elapsed - min * 60.0f;
+        snprintf(timerTxt, sizeof(timerTxt), "%02d:%05.2f", min, sec);
+        DrawText(timerTxt, 30, 30, 32, WHITE);
+
+        EndDrawing();
+
+        if (goalCompleted || finishedByDoors) { completed = true; break; }
     }
 
     UnloadTexture(mapTex); if (barraElevTex.id) UnloadTexture(barraElevTex);
@@ -940,6 +950,6 @@ bool Fase5(void) {
     // unload lake frames
     UnloadLakeSet(&animAgua); UnloadLakeSet(&animFogo); UnloadLakeSet(&animTerra); UnloadLakeSet(&animAcido);
     UnloadPlayer(&earthboy); UnloadPlayer(&fireboy); UnloadPlayer(&watergirl);
-    if (completed) Ranking_Add(2, Game_GetPlayerName(), elapsed);
+    if (completed) Ranking_Add(5, Game_GetPlayerName(), elapsed);
     return completed;
 }

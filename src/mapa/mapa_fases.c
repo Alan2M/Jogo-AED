@@ -181,7 +181,7 @@ bool MostrarMapaFases(void) {
         if (!confirmExit) {
             Vector2 mp = GetMousePosition();
             bool hover = CheckCollisionPointRec(mp, btnUnlock);
-            if ((hover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) || IsKeyPressed(KEY_U)) {
+            if (hover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                 for (int i = 1; i <= 5; ++i) {
                     if (fases[i]) fases[i]->desbloqueada = true;
                     gProgressMask |= (1u << i);
@@ -189,7 +189,7 @@ bool MostrarMapaFases(void) {
             }
 
             bool skipHover = CheckCollisionPointRec(mp, btnSkip);
-            if ((skipHover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) || IsKeyPressed(KEY_P)) {
+            if ((skipHover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) || IsKeyPressed(KEY_MINUS)) {
                 NoFase* atual = fases[faseSelecionada];
                 if (atual && atual->desbloqueada) {
                     gProgressMask |= (1u << atual->id);
@@ -244,9 +244,7 @@ bool MostrarMapaFases(void) {
         DrawTexturePro(*mapaAtual, srcMapa, dstMapa, (Vector2){0, 0}, 0.0f, WHITE);
 
         DrawText("MAPA DE FASES", 780, 40, 40, YELLOW);
-        DrawText("Setas <- -> para selecionar | ENTER para jogar", 600, 100, 20, RAYWHITE);
-        DrawText("ESC para voltar ao menu", 780, 130, 20, GRAY);
-        DrawText("T para Fase Teste (dev)", 780, 160, 20, (Color){180,180,220,255});
+        DrawText("ESC para voltar ao menu", 780, 100, 20, GRAY);
 
         NoFase* faseAtual = fases[faseSelecionada];
         bool faseDisponivel = faseAtual && faseAtual->desbloqueada;
@@ -270,35 +268,6 @@ bool MostrarMapaFases(void) {
         DrawCircleLines(posIndicador.x, posIndicador.y, 70.0f, corIndicador);
         DrawCircleLines(posIndicador.x, posIndicador.y, 76.0f, (Color){0, 0, 0, 120});
 
-        const char* msgStatus;
-        Color corStatus;
-        if (faseDisponivel) {
-            msgStatus = "ENTER para iniciar";
-            corStatus = GREEN;
-        } else {
-            msgStatus = "Conclua a fase anterior para liberar";
-            corStatus = GRAY;
-        }
-        DrawText(msgStatus, 60, screenHeight - 80, 22, corStatus);
-        Vector2 cursor = GetMousePosition();
-        char coordTexto[64];
-        snprintf(coordTexto, sizeof(coordTexto), "Mouse: %.0f, %.0f", cursor.x, cursor.y);
-        DrawText(coordTexto, 60, screenHeight - 120, 20, WHITE);
-
-
-        // Botão desenhado
-        bool hover = CheckCollisionPointRec(GetMousePosition(), btnUnlock);
-        Color cBtn = hover ? (Color){50,170,60,255} : (Color){40,140,50,255};
-        DrawRectangleRec(btnUnlock, cBtn);
-        DrawRectangleLinesEx(btnUnlock, 2, BLACK);
-        DrawText("DESBLOQUEAR TODAS (U)", btnUnlock.x + 12, btnUnlock.y + 10, 20, WHITE);
-
-        bool skipHover = CheckCollisionPointRec(GetMousePosition(), btnSkip);
-        Color cSkip = skipHover ? (Color){180,120,40,255} : (Color){140,90,30,255};
-        DrawRectangleRec(btnSkip, cSkip);
-        DrawRectangleLinesEx(btnSkip, 2, BLACK);
-        DrawText("MARCAR FASE COMO CONCLUIDA (P)", btnSkip.x + 12, btnSkip.y + 10, 20, WHITE);
-
         if (confirmExit) {
             DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0,0,0,180});
             DrawText("Voltar ao menu?", 820, 480, 30, RAYWHITE);
@@ -311,10 +280,7 @@ bool MostrarMapaFases(void) {
 
         if (sairDoMapa) break;
 
-        // Atalho dev: abrir Fase Teste (não altera desbloqueios)
-        if (!confirmExit && IsKeyPressed(KEY_T)) {
-            FaseTeste();
-        }
+        // Atalho de Fase Teste removido
     }
 
     DescarregarMapaTexturas(&mapas);

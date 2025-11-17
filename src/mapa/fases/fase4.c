@@ -925,6 +925,8 @@ fim_bloco:
         if (!insideOwn[1]) DrawPlayer(fireboy);
         if (!insideOwn[2]) DrawPlayer(watergirl);
 
+        bool finishedByDoors = earthAtDoor && fireAtDoor && waterAtDoor;
+
         // --- Debug ---
         if (debug) {
             for (int i = 0; i < totalColisoes; i++)
@@ -944,11 +946,17 @@ fim_bloco:
             DrawFPS(10, 120);
         }
 
-        // Checagem de chegada individual
-        if (earthAtDoor && fireAtDoor && waterAtDoor) { completed = true; EndMode2D(); EndDrawing(); break; }
-
         EndMode2D();
+
+        char timerTxt[32];
+        int min = (int)(elapsed / 60.0f);
+        float sec = elapsed - min * 60.0f;
+        snprintf(timerTxt, sizeof(timerTxt), "%02d:%05.2f", min, sec);
+        DrawText(timerTxt, 30, 30, 32, WHITE);
+
         EndDrawing();
+
+        if (finishedByDoors) { completed = true; break; }
     }
 
     // --- Libera recursos ---
@@ -968,6 +976,6 @@ fim_bloco:
     if (buttonSprites.red.id != 0) UnloadTexture(buttonSprites.red);
     if (buttonSprites.white.id != 0) UnloadTexture(buttonSprites.white);
     if (buttonSprites.brown.id != 0) UnloadTexture(buttonSprites.brown);
-    if (completed) Ranking_Add(1, Game_GetPlayerName(), elapsed);
+    if (completed) Ranking_Add(4, Game_GetPlayerName(), elapsed);
     return completed;
 }

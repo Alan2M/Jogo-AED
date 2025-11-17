@@ -605,6 +605,6 @@ bool Fase3(void) {
     UnloadPlayer(&earthboy);
     UnloadPlayer(&fireboy);
     UnloadPlayer(&watergirl);
-    if (completed) Ranking_Add(3, Game_GetPlayerName(), elapsed);
+    if (completed) Ranking_Add(1, Game_GetPlayerName(), elapsed);
     return completed;
 }
