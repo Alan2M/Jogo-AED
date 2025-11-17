@@ -282,6 +282,18 @@ static Texture2D LoadTextureIfExists(const char* path) {
     return LoadTexture(path);
 }
 
+static int FindCollisionIndex(Rectangle rect, const Colisao* col, int colCount) {
+    for (int i = 0; i < colCount; ++i) {
+        Rectangle r = col[i].rect;
+        if (fabsf(r.x - rect.x) > 0.5f) continue;
+        if (fabsf(r.y - rect.y) > 0.5f) continue;
+        if (fabsf(r.width - rect.width) > 0.5f) continue;
+        if (fabsf(r.height - rect.height) > 0.5f) continue;
+        return i;
+    }
+    return -1;
+}
+
 static void DrawFanSprite(Rectangle rect, bool active, const Texture2D* onFrames, int onCount, Texture2D offTex, int animFrame) {
     Texture2D tex = offTex;
     bool usingOffTex = !active && offTex.id != 0;
@@ -449,6 +461,8 @@ bool Fase2(void) {
     Texture2D barra2Tex = LoadTextureIfExists("assets/map/barras/Barra2_Fase2.png");
 
     Platform platforms[MAX_PLATFORMS]; int platformCount = 0;
+    int platformCollisionIndex[MAX_PLATFORMS];
+    for (int i=0;i<MAX_PLATFORMS;i++) platformCollisionIndex[i] = -1;
     Texture2D* platformTexRefs[MAX_PLATFORMS] = {0};
     char platformControlTokens[MAX_PLATFORMS][32] = {{0}};
     bool platformMoveDownActive[MAX_PLATFORMS] = { false };
@@ -463,6 +477,8 @@ bool Fase2(void) {
         strncpy(platformControlTokens[platformCount], "botao4barra1_branco", sizeof(platformControlTokens[platformCount]) - 1);
         platformTexRefs[platformCount] = &barra1Tex;
         platformMoveDownActive[platformCount] = true;
+        platformCollisionIndex[platformCount] = FindCollisionIndex(platforms[platformCount].rect, colisoes, totalColisoes);
+        if (platformCollisionIndex[platformCount] >= 0) colisoes[platformCollisionIndex[platformCount]].rect = platforms[platformCount].rect;
         platformCount++;
     }
     if (ParseRectsFromGroup(tmxPath, "barra2", platR, 4) > 0 && platformCount < MAX_PLATFORMS) {
@@ -474,6 +490,8 @@ bool Fase2(void) {
         strncpy(platformControlTokens[platformCount], "botao5barra2_vermelho", sizeof(platformControlTokens[platformCount]) - 1);
         platformTexRefs[platformCount] = &barra2Tex;
         platformMoveDownActive[platformCount] = true;
+        platformCollisionIndex[platformCount] = FindCollisionIndex(platforms[platformCount].rect, colisoes, totalColisoes);
+        if (platformCollisionIndex[platformCount] >= 0) colisoes[platformCollisionIndex[platformCount]].rect = platforms[platformCount].rect;
         platformCount++;
     }
 
@@ -582,6 +600,9 @@ bool Fase2(void) {
             float maxY = plat->area.y + plat->area.height - plat->rect.height;
             if (plat->rect.y < minY) plat->rect.y = minY;
             if (plat->rect.y > maxY) plat->rect.y = maxY;
+            if (platformCollisionIndex[i] >= 0 && platformCollisionIndex[i] < totalColisoes) {
+                colisoes[platformCollisionIndex[i]].rect = plat->rect;
+            }
         }
 
         bool fan1Active = AnyButtonPressedWithToken(buttonStates, buttonNamesLower, buttonCount, "ventilador1");

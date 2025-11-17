@@ -439,6 +439,19 @@ static void HandlePlatformTop(Player* pl, Rectangle plat, float dY) {
     if (pBottom <= plat.y + 16.0f && pl->velocity.y >= -1.0f) { pl->rect.y = plat.y - pl->rect.height; pl->velocity.y = 0; pl->isJumping = false; pl->rect.y += dY; }
 }
 
+static bool PlayerAtDoor(const Player* p, Rectangle door) {
+    if (door.width <= 0 || door.height <= 0) return false;
+    float pxCenter = p->rect.x + p->rect.width * 0.5f;
+    float doorLeft = door.x;
+    float doorRight = door.x + door.width;
+    const float toleranceX = 10.0f;
+    if (pxCenter < doorLeft - toleranceX || pxCenter > doorRight + toleranceX) return false;
+    float feet = p->rect.y + p->rect.height;
+    float doorBase = door.y + door.height;
+    const float toleranceY = 18.0f;
+    return feet >= doorBase - toleranceY && feet <= doorBase + toleranceY;
+}
+
 // Lakes animation frames loaders
 static int LoadFramesRange(Texture2D* arr, int max, const char* pattern, int startIdx, int endIdx) {
     int count = 0; bool started = false;
@@ -525,6 +538,13 @@ bool Fase5(void) {
     // Chegada (opcional)
     Rectangle goalR[2]; int gC = ParseRectsFromGroup(tmx, "Chegada", goalR, 2); if (gC==0) gC = ParseRectsFromGroup(tmx, "Goal", goalR, 2);
     Rectangle goalRect = (gC>0) ? goalR[0] : (Rectangle){ mapTex.width-80, mapTex.height-140, 40, 120 }; Goal goal; GoalInit(&goal, goalRect.x, goalRect.y, goalRect.width, goalRect.height, GOLD);
+    Rectangle doorTerra={0}, doorFogo={0}, doorAgua={0};
+    {
+        Rectangle doorTmp[2];
+        if (ParseRectsFromGroup(tmx, "Porta_Terra", doorTmp, 2) > 0) doorTerra = doorTmp[0];
+        if (ParseRectsFromGroup(tmx, "Porta_Fogo", doorTmp, 2) > 0) doorFogo = doorTmp[0];
+        if (ParseRectsFromGroup(tmx, "Porta_Agua", doorTmp, 2) > 0) doorAgua = doorTmp[0];
+    }
 
     // Spawns
     Vector2 spawnE={300,700}, spawnF={400,700}, spawnW={500,700};
@@ -883,6 +903,7 @@ bool Fase5(void) {
         if (!insideOwn[0]) DrawPlayer(earthboy); if (!insideOwn[1]) DrawPlayer(fireboy); if (!insideOwn[2]) DrawPlayer(watergirl);
         // 5) chegada
         GoalDraw(&goal);
+        if (earthAtDoor && fireAtDoor && waterAtDoor) { completed = true; EndMode2D(); EndDrawing(); break; }
         // 6) debug
         if (debug) {
             for (int i=0;i<nCol;i++) DrawRectangleLinesEx(col[i].rect,1,Fade(GREEN,0.5f));
@@ -890,6 +911,9 @@ bool Fase5(void) {
             if (elev2.area.width>0 && elev2.area.height>0) DrawRectangleLinesEx(elev2.area,1,Fade(YELLOW,0.5f));
             if (barra3.area.width>0 && barra3.area.height>0) DrawRectangleLinesEx(barra3.area,1,Fade(GOLD,0.5f));
             DrawRectangleLinesEx(barraM.area,1,Fade(ORANGE,0.5f));
+            if (doorTerra.width>0 && doorTerra.height>0) DrawRectangleLinesEx(doorTerra,1,Fade(BROWN,0.6f));
+            if (doorFogo.width>0 && doorFogo.height>0) DrawRectangleLinesEx(doorFogo,1,Fade(RED,0.6f));
+            if (doorAgua.width>0 && doorAgua.height>0) DrawRectangleLinesEx(doorAgua,1,Fade(BLUE,0.6f));
             for (int i=0;i<fans1Count;i++) DrawRectangleLinesEx(fans1[i].rect,1,Fade(BLUE,0.5f));
             for (int i=0;i<fans3Count;i++) DrawRectangleLinesEx(fans3[i].rect,1,Fade(PURPLE,0.5f));
             if (haveVent2) DrawRectangleLinesEx(vent2.rect,1,Fade(SKYBLUE,0.5f));
