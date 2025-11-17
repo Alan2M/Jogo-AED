@@ -528,7 +528,7 @@ bool Fase5(void) {
     }
 
     // Plataformas
-    typedef struct Platform Platform; Platform elev={0}, barraM={0};
+    typedef struct Platform Platform; Platform elev={0}, barraM={0}, elev2={0}, barra3={0};
     Texture2D barraElevTex = LoadTexture("assets/map/barras/amarelo.png");
     if (barraElevTex.id==0) barraElevTex = LoadTexture("assets/map/barras/branca.png");
     Texture2D barraMovTex = LoadTexture("assets/map/barras/barragorda.png");
@@ -543,9 +543,23 @@ bool Fase5(void) {
     if (coopBoxTex.id == 0) coopBoxTex = LoadTexture("assets/map/caixa/caixa.png");
     if (coopBoxTex.id == 0) { coopBoxTex = barraMovTex; coopBoxShared = true; }
     {
-        Rectangle r1[2], r2[2]; int c1 = ParseRectsFromGroup(tmx, "Barra_Elevador1_Colisao", r1, 2); int c2 = ParseRectsFromGroup(tmx, "Barra_Elevador1", r2, 2);
+        Rectangle r1[2], r2[2];
+        int c1 = ParseRectsFromGroup(tmx, "Barra_Elevador1_Colisao", r1, 2);
+        int c2 = ParseRectsFromGroup(tmx, "Barra_Elevador1", r2, 2);
         if (c1>0 && c2>0) PlatformInit(&elev, r1[0], r2[0], 2.5f);
-        c1 = ParseRectsFromGroup(tmx, "Barra1_Movel", r1, 2); c2 = ParseRectsFromGroup(tmx, "AreaMovimentoBarraMovel", r2, 2);
+        c1 = ParseRectsFromGroup(tmx, "Barra_Elevador2_Colisao", r1, 2);
+        c2 = ParseRectsFromGroup(tmx, "Barra_Elevador2", r2, 2);
+        if (c2==0) c2 = ParseRectsFromGroup(tmx, "Barrra_Elevador2", r2, 2);
+        if (c1>0 && c2>0) PlatformInit(&elev2, r1[0], r2[0], 2.5f);
+        c1 = ParseRectsFromGroup(tmx, "Barra3", r1, 2);
+        c2 = ParseRectsFromGroup(tmx, "Area_Barra3", r2, 2);
+        if (c1>0 && c2>0) {
+            PlatformInit(&barra3, r1[0], r2[0], 2.0f);
+            barra3.rect.y = barra3.area.y + barra3.area.height - barra3.rect.height;
+            barra3.startY = barra3.rect.y;
+        }
+        c1 = ParseRectsFromGroup(tmx, "Barra1_Movel", r1, 2);
+        c2 = ParseRectsFromGroup(tmx, "AreaMovimentoBarraMovel", r2, 2);
         if (c1>0 && c2>0) PlatformInit(&barraM, r1[0], r2[0], 2.0f);
     }
 
@@ -589,7 +603,9 @@ bool Fase5(void) {
     // Câmera
     Camera2D cam = {0}; cam.target=(Vector2){mapTex.width/2.0f,mapTex.height/2.0f}; cam.offset=(Vector2){GetScreenWidth()/2.0f,GetScreenHeight()/2.0f}; cam.zoom=1.0f;
 
-    bool completed=false; float elapsed=0.0f; bool debug=false; SetTargetFPS(60);
+    bool completed=false; float elapsed=0.0f; bool debug=false;
+    bool tempoButtonLatched=false; float tempoButtonTimer=0.0f; float barra3Timer=0.0f;
+    SetTargetFPS(60);
     while (!WindowShouldClose()) {
         float frameDt = GetFrameTime();
         elapsed += frameDt;
@@ -614,12 +630,52 @@ bool Fase5(void) {
         bool p1 = AnyButtonPressedWithToken(buttons, buttonCount, "botao1");
         bool p2 = AnyButtonPressedWithToken(buttons, buttonCount, "botao2");
         bool p3 = AnyButtonPressedWithToken(buttons, buttonCount, "botao3");
+        bool tempoPressed = AnyButtonPressedWithToken(buttons, buttonCount, "botao_tempo");
+        if (tempoPressed && !tempoButtonLatched) {
+            tempoButtonLatched = true;
+            tempoButtonTimer = 10.0f; // mantém elevador baixo por 10s
+            barra3Timer = 20.0f;
+        }
+        if (tempoButtonTimer > 0.0f) {
+            tempoButtonTimer -= frameDt;
+            if (tempoButtonTimer < 0.0f) tempoButtonTimer = 0.0f;
+        }
+        if (barra3Timer > 0.0f) {
+            barra3Timer -= frameDt;
+            if (barra3Timer < 0.0f) barra3Timer = 0.0f;
+        }
+        bool elev2Btn1 = AnyButtonPressedWithToken(buttons, buttonCount, "botao1_barra1_morvel_branco");
+        bool elev2Btn4 = AnyButtonPressedWithToken(buttons, buttonCount, "botao4_branco");
+        bool elev2Active = (tempoButtonTimer > 0.0f) || (elev2Btn1 && elev2Btn4);
+        if (tempoButtonLatched) {
+            for (int i = 0; i < buttonCount; ++i) {
+                if (strstr(buttons[i].nameLower, "botao_tempo")) buttons[i].pressed = true;
+            }
+        }
 
-        float elevPrevY = elev.rect.y, barraPrevY = barraM.rect.y;
+        float elevPrevY = elev.rect.y, elev2PrevY = elev2.rect.y, barraPrevY = barraM.rect.y, barra3PrevY = barra3.rect.y;
         if (elev.area.height>0 && elev.rect.height>0) {
             if (p1 && !p2 && !p3) { float base = elev.area.y + elev.area.height - elev.rect.height; elev.rect.y = moveTowards(elev.rect.y, base, elev.speed); }
             else { elev.rect.y = moveTowards(elev.rect.y, elev.startY, elev.speed); }
             float minY=elev.area.y, maxY=elev.area.y+elev.area.height-elev.rect.height; if (elev.rect.y<minY) elev.rect.y=minY; if (elev.rect.y>maxY) elev.rect.y=maxY;
+        }
+        if (elev2.area.height>0 && elev2.rect.height>0) {
+            float targetDown = elev2.area.y + elev2.area.height - elev2.rect.height;
+            float target = elev2Active ? targetDown : elev2.startY;
+            elev2.rect.y = moveTowards(elev2.rect.y, target, elev2.speed);
+            float minY=elev2.area.y, maxY=elev2.area.y+elev2.area.height-elev2.rect.height;
+            if (elev2.rect.y<minY) elev2.rect.y=minY;
+            if (elev2.rect.y>maxY) elev2.rect.y=maxY;
+        }
+        if (barra3.area.height>0 && barra3.rect.height>0) {
+            float targetOpen = barra3.area.y;
+            float targetClosed = barra3.startY;
+            bool active = barra3Timer > 0.0f;
+            float target = active ? targetOpen : targetClosed;
+            barra3.rect.y = moveTowards(barra3.rect.y, target, barra3.speed);
+            float minY=barra3.area.y, maxY=barra3.area.y+barra3.area.height-barra3.rect.height;
+            if (barra3.rect.y<minY) barra3.rect.y=minY;
+            if (barra3.rect.y>maxY) barra3.rect.y=maxY;
         }
         if (barraM.area.height>0 && barraM.rect.height>0) {
             int pressed=(p1?1:0)+(p2?1:0)+(p3?1:0);
@@ -627,7 +683,10 @@ bool Fase5(void) {
             else { barraM.rect.y = moveTowards(barraM.rect.y, barraM.startY, barraM.speed); }
             float minY=barraM.area.y, maxY=barraM.area.y+barraM.area.height-barraM.rect.height; if (barraM.rect.y<minY) barraM.rect.y=minY; if (barraM.rect.y>maxY) barraM.rect.y=maxY;
         }
-        float elevDY = elev.rect.y - elevPrevY, barraDY = barraM.rect.y - barraPrevY;
+        float elevDY = elev.rect.y - elevPrevY;
+        float elev2DY = elev2.rect.y - elev2PrevY;
+        float barra3DY = barra3.rect.y - barra3PrevY;
+        float barraDY = barraM.rect.y - barraPrevY;
 
         Rectangle ground = (Rectangle){0, mapTex.height, mapTex.width, 200};
         UpdatePlayer(&earthboy, ground, KEY_A, KEY_D, KEY_W);
@@ -667,10 +726,18 @@ bool Fase5(void) {
         for (int p=0;p<3;p++) {
             Player* pl=P[p];
             for (int i=0;i<nCol;i++) ResolvePlayerVsRect(pl, col[i].rect);
+            if (elev2.rect.width > 0 && elev2.rect.height > 0) ResolvePlayerVsRect(pl, elev2.rect);
+            if (barra3.rect.width > 0 && barra3.rect.height > 0) ResolvePlayerVsRect(pl, barra3.rect);
             if (barraM.rect.width > 0 && barraM.rect.height > 0) ResolvePlayerVsRect(pl, barraM.rect);
         }
 
-        for (int p=0;p<3;p++) { Player* pl=P[p]; if (elev.rect.width>0) HandlePlatformTop(pl, elev.rect, elevDY); if (barraM.rect.width>0) HandlePlatformTop(pl, barraM.rect, barraDY); }
+        for (int p=0;p<3;p++) {
+            Player* pl=P[p];
+            if (elev.rect.width>0) HandlePlatformTop(pl, elev.rect, elevDY);
+            if (elev2.rect.width>0) HandlePlatformTop(pl, elev2.rect, elev2DY);
+            if (barra3.rect.width>0) HandlePlatformTop(pl, barra3.rect, barra3DY);
+            if (barraM.rect.width>0) HandlePlatformTop(pl, barraM.rect, barraDY);
+        }
 
         // Ventiladores: 1 e 3 sempre aplicam, 2 só se somente b3
         for (int i=0;i<fans1Count;i++) { FanApply(&fans1[i], &earthboy); FanApply(&fans1[i], &fireboy); FanApply(&fans1[i], &watergirl); }
@@ -749,7 +816,9 @@ bool Fase5(void) {
         }
         // 3) plataformas
         if (elev.rect.width>0 && barraElevTex.id) DrawTexturePro(barraElevTex,(Rectangle){0,0,(float)barraElevTex.width,(float)barraElevTex.height},elev.rect,(Vector2){0,0},0.0f,WHITE);
+        if (elev2.rect.width>0 && barraElevTex.id) DrawTexturePro(barraElevTex,(Rectangle){0,0,(float)barraElevTex.width,(float)barraElevTex.height},elev2.rect,(Vector2){0,0},0.0f,WHITE);
         if (barraM.rect.width>0 && barraMovTex.id) DrawTexturePro(barraMovTex,(Rectangle){0,0,(float)barraMovTex.width,(float)barraMovTex.height},barraM.rect,(Vector2){0,0},0.0f,WHITE);
+        if (barra3.rect.width>0 && barraMovTex.id) DrawTexturePro(barraMovTex,(Rectangle){0,0,(float)barraMovTex.width,(float)barraMovTex.height},barra3.rect,(Vector2){0,0},0.0f,WHITE);
         for (int b=0; b<coopBoxCount; ++b) {
             if (coopBoxTex.id) DrawTexturePro(coopBoxTex,(Rectangle){0,0,(float)coopBoxTex.width,(float)coopBoxTex.height},coopBoxes[b].rect,(Vector2){0,0},0.0f,WHITE);
             else DrawRectangleRec(coopBoxes[b].rect, DARKBROWN);
@@ -761,7 +830,10 @@ bool Fase5(void) {
         // 6) debug
         if (debug) {
             for (int i=0;i<nCol;i++) DrawRectangleLinesEx(col[i].rect,1,Fade(GREEN,0.5f));
-            DrawRectangleLinesEx(elev.area,1,Fade(YELLOW,0.5f)); DrawRectangleLinesEx(barraM.area,1,Fade(ORANGE,0.5f));
+            DrawRectangleLinesEx(elev.area,1,Fade(YELLOW,0.5f));
+            if (elev2.area.width>0 && elev2.area.height>0) DrawRectangleLinesEx(elev2.area,1,Fade(YELLOW,0.5f));
+            if (barra3.area.width>0 && barra3.area.height>0) DrawRectangleLinesEx(barra3.area,1,Fade(GOLD,0.5f));
+            DrawRectangleLinesEx(barraM.area,1,Fade(ORANGE,0.5f));
             for (int i=0;i<fans1Count;i++) DrawRectangleLinesEx(fans1[i].rect,1,Fade(BLUE,0.5f));
             for (int i=0;i<fans3Count;i++) DrawRectangleLinesEx(fans3[i].rect,1,Fade(PURPLE,0.5f));
             if (haveVent2) DrawRectangleLinesEx(vent2.rect,1,Fade(SKYBLUE,0.5f));
