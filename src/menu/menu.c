@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "../audio/theme.h"
 #include "../mapa/mapa_fases.h"
 #include "../game/game.h"
 #include "../ranking/ranking.h"
@@ -24,6 +25,7 @@ bool MostrarMenu(void) {
     //Vector2 posSair = { 830, 850 };
 
     while (!WindowShouldClose()) {
+        Theme_Update();
         BeginDrawing();
         ClearBackground(BLACK);
 
@@ -116,6 +118,7 @@ void MostrarInstrucoes(void) {
     bool voltar = false;
 
     while (!WindowShouldClose() && !voltar) {
+        Theme_Update();
         BeginDrawing();
         ClearBackground(BLACK);
 
@@ -145,6 +148,7 @@ bool PromptPlayerName(void) {
     while (IsKeyDown(KEY_ENTER)) { BeginDrawing(); EndDrawing(); }
 
     while (!WindowShouldClose()) {
+        Theme_Update();
         bool showError = false;
         int ch = GetCharPressed();
         while (ch > 0) {

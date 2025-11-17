@@ -1,5 +1,6 @@
 #include "ranking.h"
 #include "raylib.h"
+#include "../audio/theme.h"
 #include <string.h>
 #include <stdio.h>
 #include "../structure/quicksort.h"
@@ -77,6 +78,7 @@ static void drawTime(float t, int x, int y, int fontSize, Color c) {
 void MostrarRanking(void) {
     int fase = 1;
     while (!WindowShouldClose()) {
+        Theme_Update();
         BeginDrawing();
         ClearBackground((Color){10, 10, 14, 255});
         DrawText("RANKING", 820, 60, 50, YELLOW);

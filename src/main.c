@@ -3,6 +3,7 @@
 #include "menu/menu.h"
 #include "mapa/mapa_fases.h"
 #include "ranking/ranking.h"
+#include "audio/theme.h"
 
 int main(void)
 {
@@ -13,12 +14,14 @@ int main(void)
     SetExitKey(0);
     SetTargetFPS(60);
     Ranking_Init();
+    Theme_Init();
 
     bool rodando = true;
 
     while (rodando && !WindowShouldClose())
     {
         // --- MENU PRINCIPAL ---
+        Theme_Update();
         bool jogar = MostrarMenu();
 
         // Se o jogador escolheu SAIR
@@ -34,6 +37,8 @@ int main(void)
         if (!continuarJogo)
             continue;
     }
+
+    Theme_Shutdown();
 
     CloseWindow();
     return 0;

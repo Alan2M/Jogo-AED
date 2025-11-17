@@ -8,6 +8,7 @@
 #include "../../ranking/ranking.h"
 #include "../../interface/pause.h"
 #include "phase_common.h"
+#include "../../audio/theme.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -442,6 +443,7 @@ bool Fase5(void) {
     bool tempoButtonLatched=false; float tempoButtonTimer=0.0f; float barra3Timer=0.0f;
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
+        Theme_Update();
         float frameDt = GetFrameTime();
         elapsed += frameDt;
         if (IsKeyPressed(KEY_TAB)) debug=!debug;

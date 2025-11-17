@@ -7,6 +7,7 @@
 #include "../../interface/pause.h"
 #include "../../game/game.h"
 #include "../../ranking/ranking.h"
+#include "../../audio/theme.h"
 #include "phase_common.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -279,6 +280,7 @@ bool Fase2(void) {
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
+        Theme_Update();
         float dt = GetFrameTime();
         elapsed += dt;
         if (IsKeyPressed(KEY_TAB)) debug = !debug;

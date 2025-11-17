@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include "fases/fases.h"
+#include "../audio/theme.h"
 #include "../player/player.h"
 #include "../game/game.h"
 
@@ -153,6 +154,7 @@ bool MostrarMapaFases(void) {
 
     // 🟡 EVITA que o ENTER do menu entre direto na Fase 1
     while (IsKeyDown(KEY_ENTER)) {
+        Theme_Update();
         BeginDrawing();
         ClearBackground(BLACK);
         DrawText("Carregando mapa...", 800, 500, 30, WHITE);
@@ -161,6 +163,7 @@ bool MostrarMapaFases(void) {
 
     // Evita que o ESC usado para sair da fase acione o overlay imediatamente
     while (IsKeyDown(KEY_ESCAPE)) {
+        Theme_Update();
         BeginDrawing();
         ClearBackground(BLACK);
         DrawText("Carregando mapa...", 800, 500, 30, WHITE);
@@ -168,6 +171,7 @@ bool MostrarMapaFases(void) {
     }
 
     while (!WindowShouldClose() && !sairDoMapa) {
+        Theme_Update();
 
         // --- Navegação entre fases ---
         if (!confirmExit && IsKeyPressed(KEY_LEFT)) {
