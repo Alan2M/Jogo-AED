@@ -73,8 +73,9 @@ O tempo de cada fase é registrado e os resultados são ordenados usando **Inser
 Compile o projeto:
 
 ```bash
-gcc main.c -o elements -lraylib
-./elements
+make clean
+make
+make run
 ```
 
 ---
