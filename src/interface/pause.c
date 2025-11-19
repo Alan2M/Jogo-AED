@@ -5,8 +5,7 @@ PauseResult ShowPauseMenu(void) {
     int selected = 0; // 0=retomar,1=mapa,2=menu
 
     // Evita fechar imediatamente por causa do mesmo ESC que abriu o menu
-    while (IsKeyDown(KEY_ESCAPE)) { BeginDrawing(); EndDrawing(); }
-
+ 
     while (!WindowShouldClose()) {
         BeginDrawing();
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){0,0,0,180});

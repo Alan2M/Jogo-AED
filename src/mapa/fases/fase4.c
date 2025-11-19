@@ -426,9 +426,9 @@ bool Fase4(void) {
         PhaseResolvePlayersVsWorld(players, 3, colisoes, totalColisoes, PHASE_STEP_HEIGHT);
 
         struct { Player* pl; int keyLeft; int keyRight; } controls[3] = {
-            { &earthboy, KEY_A, KEY_D },
+            { &earthboy, KEY_J, KEY_L },
             { &fireboy, KEY_LEFT, KEY_RIGHT },
-            { &watergirl, KEY_J, KEY_L }
+            { &watergirl, KEY_A, KEY_D }
         };
 
         const float BOX_GRAVITY = 0.45f;

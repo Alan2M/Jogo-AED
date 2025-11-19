@@ -80,7 +80,7 @@ static NoFase* CriarArvoreFases(NoFase** fases) {
     fases[5] = CriarFase(5, false);
 
     Conectar(fases[1], fases[2], fases[3]);
-    Conectar(fases[2], fases[4], fases[5]);
+    Conectar(fases[2], fases[5], fases[4]);
     if (fases[3]) { fases[3]->esquerda = NULL; fases[3]->direita = NULL; }
 
     return fases[1];

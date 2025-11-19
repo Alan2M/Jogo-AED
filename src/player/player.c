@@ -84,15 +84,16 @@ void InitWatergirl(Player *p) {
 // --- UPDATE genérico: teclas personalizadas ---
 void UpdatePlayer(Player *p, Rectangle ground, int keyLeft, int keyRight, int keyJump) {
     bool moving = false;
+    const float MOVE_SPEED = 4.4f;
 
     // Movimento horizontal
     if (IsKeyDown(keyRight)) {
-        p->rect.x += 4;
+        p->rect.x += MOVE_SPEED;
         p->facingRight = true;
         moving = true;
     }
     if (IsKeyDown(keyLeft)) {
-        p->rect.x -= 4;
+        p->rect.x -= MOVE_SPEED;
         p->facingRight = false;
         moving = true;
     }
